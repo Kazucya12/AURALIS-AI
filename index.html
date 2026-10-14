@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Auralis AI</title>
+<meta name="description" content="Auralis AI: asisten AI pribadi untuk kode, tulisan, dan analisis."><meta name="theme-color" content="#0e0c1d"><meta property="og:title" content="Auralis AI"><meta property="og:description" content="Asisten AI pribadi untuk kode, tulisan, dan analisis."><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0e0c1d;--s1:#171430;--s2:#201c3f;--bd:#2f2a58;--tx:#ece9ff;--mu:#9a94c9;--ac:#8b7bff;--ac2:#5eead4;--er:#ff6b8a;--fs:15px}
+[data-t=light]{--bg:#f5f3ff;--s1:#fff;--s2:#ece8ff;--bd:#d9d3f5;--tx:#1d1840;--mu:#6b64a0}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font:var(--fs)/1.55 Sora,system-ui,sans-serif;background:var(--bg);color:var(--tx);overflow:hidden;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+.noanim *{animation:none!important;transition:none!important}
+.hide{display:none!important}
+input,select,textarea{background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:11px 13px;width:100%;outline:0;transition:border .2s}
+input:focus,select:focus,textarea:focus{border-color:var(--ac)}
+.btn{background:linear-gradient(135deg,var(--ac),#6f5cf5);color:#fff;padding:12px 18px;border-radius:12px;font-weight:600;transition:transform .15s,filter .2s}
+.btn:active{transform:scale(.97)}.btn:hover{filter:brightness(1.1)}
+.ghost{background:var(--s2);border:1px solid var(--bd);padding:9px 14px;border-radius:10px}
+.danger{color:var(--er)}
+/* auth */
+#auth{position:fixed;inset:0;display:grid;place-items:center;padding:20px;overflow:auto}
+.orb{position:fixed;width:60vmax;height:60vmax;border-radius:50%;opacity:.4;animation:drift 16s ease-in-out infinite alternate;pointer-events:none;will-change:transform}
+.o1{background:radial-gradient(circle,var(--ac),transparent 65%);top:-25vmax;left:-15vmax}.o2{background:radial-gradient(circle,var(--ac2),transparent 65%);bottom:-30vmax;right:-20vmax;animation-delay:-8s}
+@keyframes drift{to{transform:translate3d(8vmax,6vmax,0) scale(1.15)}}
+.card{position:relative;width:min(400px,100%);background:var(--s1);border:1px solid var(--bd);border-radius:22px;padding:28px;animation:rise .7s cubic-bezier(.2,.9,.3,1)}
+@keyframes rise{from{opacity:0;transform:translateY(24px) scale(.97)}}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.25em;margin-bottom:6px}
+.logo i{width:30px;height:30px;border-radius:10px;background:conic-gradient(from 200deg,var(--ac),var(--ac2),var(--ac));display:block;animation:spin 8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sub{color:var(--mu);font-size:.9em;margin-bottom:18px}
+.tabs{display:flex;background:var(--s2);border-radius:12px;padding:4px;margin-bottom:16px}
+.tabs button{flex:1;padding:8px;border-radius:9px;color:var(--mu);transition:.2s}
+.tabs .on{background:var(--s1);color:var(--tx);box-shadow:0 2px 8px #0003}
+.f{margin-bottom:12px;position:relative}.f label{font-size:.8em;color:var(--mu);display:block;margin-bottom:5px}
+.eye{position:absolute;right:8px;bottom:6px;padding:6px;color:var(--mu);font-size:.8em}
+.err{color:var(--er);font-size:.85em;min-height:1.3em;margin-bottom:8px}
+/* app */
+#app{display:flex;height:100%}
+#side{width:290px;background:var(--s1);border-right:1px solid var(--bd);display:flex;flex-direction:column;padding:14px;gap:10px;transition:transform .3s cubic-bezier(.2,.9,.3,1);z-index:20}
+#list{flex:1;overflow:auto;display:flex;flex-direction:column;gap:3px}
+.ci{display:flex;align-items:center;gap:6px;padding:10px 12px;border-radius:11px;color:var(--mu);cursor:pointer;transition:background-color .15s,color .15s}
+.ci span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ci:hover{background:var(--s2)}.ci.on{background:var(--s2);color:var(--tx);box-shadow:inset 3px 0 var(--ac)}
+.ci b{opacity:0;padding:0 4px;font-weight:400}.ci:hover b,.ci.on b{opacity:1}
+.me{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:var(--s2)}
+.av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#fff;flex:none}
+.me div:nth-child(2){flex:1;min-width:0}.me small{color:var(--mu);display:block;overflow:hidden;text-overflow:ellipsis}
+#main{flex:1;display:flex;flex-direction:column;min-width:0}
+.top{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--bd)}
+.top h1{font-size:1em;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.top select{width:auto;padding:8px;max-width:130px;text-overflow:ellipsis}
+#menu{display:none;font-size:1.3em;padding:4px 8px}
+#msgs{flex:1;overflow:auto;padding:20px 16px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.w{max-width:780px;margin:0 auto}
+.m{display:flex;gap:12px;margin-bottom:20px;contain:layout style}.m.new{animation:in .4s cubic-bezier(.2,.9,.3,1)}
+@keyframes in{from{opacity:0;transform:translateY(10px)}}
+.m .av{width:30px;height:30px;font-size:.8em;background:linear-gradient(135deg,var(--ac),var(--ac2))}
+.m.u{flex-direction:row-reverse}.m.u .b{background:var(--s2);border:1px solid var(--bd);padding:10px 14px;border-radius:16px 4px 16px 16px}
+.b{min-width:0;overflow-wrap:anywhere;max-width:calc(100% - 44px)}
+.acts{display:flex;gap:4px;margin-top:6px}.acts button{color:var(--mu);font-size:.78em;padding:3px 8px;border-radius:8px}.acts button:hover{background:var(--s2);color:var(--tx)}
+.b h4{margin:8px 0 4px}.b ul{padding-left:20px}
+.b code{background:var(--s2);padding:1px 6px;border-radius:6px;font-size:.88em}
+.code{background:#0a0816;border:1px solid var(--bd);border-radius:12px;margin:8px 0;overflow:hidden}
+.ch{display:flex;justify-content:space-between;padding:6px 12px;background:#15112e;color:var(--mu);font-size:.78em}
+.ch button{color:var(--ac2)}
+pre{padding:12px;overflow:auto;font:.84em/1.5 ui-monospace,Menlo,monospace;color:#e6e2ff}
+.dots{display:inline-flex;gap:4px;padding:8px 0}.dots i{width:7px;height:7px;border-radius:50%;background:var(--ac);animation:bn 1s infinite}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes bn{50%{transform:translateY(-6px);opacity:.4}}
+.empty{text-align:center;padding:9vh 0 0}.empty h2{font-size:1.7em;margin:10px 0 4px}
+.empty p{color:var(--mu);margin-bottom:22px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;text-align:left}
+.chips button{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:13px;transition:border-color .2s,transform .2s}
+.chips button:hover{border-color:var(--ac);transform:translateY(-2px)}
+.comp{padding:10px 16px 14px}.cbox{max-width:780px;margin:0 auto;display:flex;gap:8px;align-items:flex-end;background:var(--s1);border:1px solid var(--bd);border-radius:20px;padding:8px;transition:border .2s}
+.cbox:focus-within{border-color:var(--ac)}
+.cbox textarea{border:0;background:none;resize:none;max-height:150px;padding:9px}
+.ib{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none;color:var(--mu)}
+.ib.rec{color:var(--er);animation:bn .8s infinite}
+.send{background:linear-gradient(135deg,var(--ac),#6f5cf5);color:#fff}
+/* modal */
+#md,#dc{position:fixed;inset:0;background:#0009;display:grid;place-items:center;padding:14px;z-index:50;animation:fade .2s}
+@keyframes fade{from{opacity:0}}
+.mb{background:var(--s1);border:1px solid var(--bd);border-radius:20px;width:min(560px,100%);max-height:90dvh;display:flex;flex-direction:column;animation:rise .3s}
+.mh{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;font-weight:600}
+.st{display:flex;gap:4px;padding:0 16px;overflow:auto;border-bottom:1px solid var(--bd)}
+.st button{padding:10px 12px;color:var(--mu);white-space:nowrap;border-bottom:2px solid transparent}.st .on{color:var(--tx);border-color:var(--ac)}
+.sp{padding:18px 20px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.sw{display:flex;gap:8px;flex-wrap:wrap}.sw i{width:30px;height:30px;border-radius:50%;cursor:pointer;border:3px solid transparent}.sw i.on{border-color:var(--tx)}
+.tg{width:46px;height:26px;border-radius:99px;background:var(--bd);position:relative;flex:none;transition:.2s}
+.tg::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}.tg.on{background:var(--ac)}.tg.on::after{left:23px}
+.hint{font-size:.8em;color:var(--mu)}
+#toast{position:fixed;bottom:90px;left:50%;transform:translate(-50%,20px);background:var(--s2);border:1px solid var(--bd);padding:10px 18px;border-radius:99px;opacity:0;transition:.3s;z-index:99;pointer-events:none}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#shade{display:none}
+.pic{max-width:min(220px,100%);border-radius:12px;display:block;margin-bottom:6px}
+.chip{display:flex;align-items:center;gap:8px;background:var(--s2);border:1px solid var(--bd);border-radius:12px;padding:7px 12px;font-size:.84em;margin:0 auto 8px;max-width:780px}
+.chip button{color:var(--mu)}#db{white-space:pre-wrap}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media(max-width:760px){
+#side{will-change:transform;position:fixed;inset:0 auto 0 0;width:min(86vw,320px);transform:translateX(-100%);padding-top:calc(14px + env(safe-area-inset-top))}
+#side.open{transform:none}#menu{display:block}
+#shade.open{display:block;position:fixed;inset:0;background:#0007;z-index:15}
+.top select{max-width:96px}.top .ghost{padding:9px 11px}}
+</style></head><body>
+
+<div id="auth"><div class="orb o1"></div><div class="orb o2"></div>
+<div class="card">
+<div class="logo"><i></i>Auralis AI</div><p class="sub">Asisten AI pribadi untuk kode, tulisan, dan analisis.</p>
+<div class="tabs"><button class="on" data-m="in">Masuk</button><button data-m="up">Daftar</button></div>
+<div class="f up hide"><label>Nama</label><input id="an" autocomplete="name" placeholder="Nama lengkap"></div>
+<div class="f"><label>Email</label><input id="ae" type="email" autocomplete="email" placeholder="kamu@email.com"></div>
+<div class="f"><label>Kata sandi</label><input id="ap" type="password" autocomplete="current-password" placeholder="Minimal 6 karakter"><button class="eye" id="eye">Lihat</button></div>
+<div class="f up hide"><label>Ulangi kata sandi</label><input id="ap2" type="password" autocomplete="new-password"></div>
+<div class="err" id="aerr"></div>
+<button class="btn" id="asub" style="width:100%">Masuk</button>
+</div></div>
+
+<div id="app" class="hide">
+<aside id="side">
+<div class="logo"><i></i>Auralis AI</div>
+<button class="btn" id="new">+ Obrolan baru</button>
+<input id="q" placeholder="Cari obrolan...">
+<div id="list"></div>
+<div class="me"><div class="av" id="mav"></div><div><b id="mnm"></b><small id="mem"></small></div><button class="ghost" id="setb">Atur</button></div>
+</aside><div id="shade"></div>
+<section id="main">
+<div class="top"><button id="menu">☰</button><h1 id="ttl" title="Ketuk untuk ganti nama">Obrolan baru</h1>
+<select id="mode"></select><select id="model"></select><button class="ghost" id="exp" title="Bagikan">↗</button></div>
+<div id="msgs"><div class="w" id="w"></div></div>
+<div class="comp"><div id="att" class="hide"></div><div class="cbox">
+<button class="ib" id="att0" title="Lampirkan">📎</button><input type="file" id="fi" class="hide" accept="image/*,.txt,.md,.js,.json,.csv,.py,.html,.css,.lua"><button class="ib" id="mic" title="Suara">🎤</button>
+<textarea id="in" rows="1" placeholder="Tulis pesan..."></textarea>
+<button class="ib send" id="go">➤</button></div></div>
+</section></div>
+
+<div id="md" class="hide"><div class="mb">
+<div class="mh">Pengaturan<button id="mx" class="ghost">Tutup</button></div>
+<div class="st"><button class="on" data-p="p1">Profil</button><button data-p="p2">Tampilan</button><button data-p="p3">Persona</button><button data-p="p4">Data</button><button data-p="p5">Info</button></div>
+<div class="sp" id="p1">
+<div class="f"><label>Nama</label><input id="sn"></div>
+<div><div class="hint" style="margin-bottom:6px">Warna avatar</div><div class="sw" id="sw"></div></div>
+<div class="f"><label>Kata sandi lama</label><input id="po" type="password"></div>
+<div class="f"><label>Kata sandi baru</label><input id="pn" type="password"></div>
+<button class="btn" id="sv1">Simpan profil</button>
+<button class="ghost danger" id="lo">Keluar akun</button></div>
+<div class="sp hide" id="p2">
+<div class="f"><label>Tema</label><select id="th"><option value="dark">Gelap</option><option value="light">Terang</option><option value="auto">Ikuti sistem</option></select></div>
+<div class="f"><label>Ukuran font: <span id="fv"></span>px</label><input id="fz" type="range" min="13" max="19"></div>
+<div class="row"><div>Animasi<div class="hint">Matikan untuk performa lebih ringan</div></div><div class="tg" id="an2"></div></div>
+<div class="row"><div>Kirim dengan Enter<div class="hint">Shift+Enter untuk baris baru</div></div><div class="tg" id="en"></div></div></div>
+<div class="sp hide" id="p3">
+<div class="f"><label>Persona</label><select id="pr"></select></div>
+<div class="f"><label>Kreativitas: <span id="tv"></span></label><input id="tp" type="range" min="0" max="1.5" step=".1"></div>
+<div class="f"><label>Memori (hal yang perlu AI ingat tentang kamu)</label><textarea id="mm" rows="3" placeholder="Contoh: aku developer Roblox, suka jawaban singkat"></textarea></div>
+<div class="f"><label>Instruksi kustom</label><textarea id="sy" rows="2" placeholder="Contoh: jawab singkat dan santai"></textarea></div>
+<button class="btn" id="sv3">Simpan persona</button></div>
+<div class="sp hide" id="p4">
+<button class="ghost" id="ea">Ekspor semua data (JSON)</button>
+<button class="ghost danger" id="ca">Hapus semua obrolan</button>
+<button class="ghost danger" id="da">Hapus akun</button></div>
+<div class="sp hide" id="p5">
+<div><b>Pemakaian hari ini</b><div class="hint" id="us"></div></div>
+<button class="ghost" id="ins">Pasang sebagai aplikasi</button>
+<button class="ghost" id="tos">Syarat layanan</button>
+<button class="ghost" id="prv">Kebijakan privasi</button>
+<div class="hint">Auralis AI v1.0</div></div>
+</div></div>
+<div id="dc" class="hide"><div class="mb"><div class="mh"><span id="dt"></span><button id="dx" class="ghost">Tutup</button></div><div class="sp" id="db"></div></div></div>
+<div id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const L=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},W=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const esc=t=>t.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const H=async s=>crypto.subtle?[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))].map(b=>b.toString(16).padStart(2,'0')).join(''):btoa(unescape(encodeURIComponent(s)));
+const COL=['#8b7bff','#5eead4','#ff6b8a','#fbbf24','#38bdf8','#fb923c'];
+const MODES={chat:['Chat','Kamu asisten AI yang ramah, akurat, dan ringkas. Jawab dalam bahasa pengguna.'],code:['Kode','Kamu software engineer senior. Beri kode lengkap yang berfungsi dalam blok kode, lalu penjelasan singkat.'],write:['Tulis','Kamu penulis profesional. Hasilkan teks rapi dan natural sesuai gaya yang diminta.'],analyze:['Analisis','Kamu analis. Uraikan langkah demi langkah dan akhiri dengan kesimpulan jelas.']};
+const DEF={theme:'dark',font:15,anim:true,enter:true,temp:.7,sys:'',persona:'default',mem:'',model:'qwen-plus'};
+const CFG={limit:50};
+/* API key TIDAK ada di sini. Semua key disimpan di server (Vercel env). */
+const API=window.AURALIS_API||'/api/chat';let AV={};
+async function loadAV(){try{AV=await(await fetch(API)).json()}catch{AV={}}fillModels()}
+const PROV={qwen:['Qwen','https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions'],anthropic:['Claude (Anthropic)','https://api.anthropic.com/v1/messages'],openai:['GPT (OpenAI)','https://api.openai.com/v1/chat/completions'],gemini:['Gemini (Google)','https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'],deepseek:['DeepSeek','https://api.deepseek.com/chat/completions'],groq:['Groq (Llama)','https://api.groq.com/openai/v1/chat/completions'],mistral:['Mistral','https://api.mistral.ai/v1/chat/completions'],xai:['Grok (xAI)','https://api.x.ai/v1/chat/completions'],openrouter:['OpenRouter (semua model)','https://openrouter.ai/api/v1/chat/completions']};
+const MODELS=[
+{id:'qwen-plus',n:'Qwen Plus',p:'qwen'},{id:'qwen-max',n:'Qwen Max',p:'qwen'},{id:'qwen-turbo',n:'Qwen Turbo',p:'qwen'},{id:'qwen-vl-plus',n:'Qwen VL (gambar)',p:'qwen',v:1},
+{id:'claude-opus-5-5',n:'Claude Opus 5.5',p:'anthropic',v:1},{id:'claude-sonnet-5-5',n:'Claude Sonnet 5.5',p:'anthropic',v:1},{id:'claude-haiku-5-5',n:'Claude Haiku 5.5',p:'anthropic',v:1},
+{id:'gpt-5',n:'GPT-5',p:'openai',v:1,nt:1},{id:'gpt-5-mini',n:'GPT-5 Mini',p:'openai',v:1,nt:1},{id:'gpt-4o',n:'GPT-4o',p:'openai',v:1},{id:'gpt-4o-mini',n:'GPT-4o Mini',p:'openai',v:1},
+{id:'gemini-2.5-pro',n:'Gemini 2.5 Pro',p:'gemini',v:1},{id:'gemini-2.5-flash',n:'Gemini 2.5 Flash',p:'gemini',v:1},
+{id:'deepseek-chat',n:'DeepSeek V3',p:'deepseek'},{id:'deepseek-reasoner',n:'DeepSeek R1',p:'deepseek'},
+{id:'llama-3.3-70b-versatile',n:'Llama 3.3 70B',p:'groq'},{id:'mistral-large-latest',n:'Mistral Large',p:'mistral'},{id:'grok-4',n:'Grok 4',p:'xai',v:1},
+{id:'anthropic/claude-sonnet-4.5',n:'Claude Sonnet',p:'openrouter',v:1},{id:'openai/gpt-4o',n:'GPT-4o',p:'openrouter',v:1},{id:'google/gemini-2.5-flash',n:'Gemini Flash',p:'openrouter',v:1},{id:'deepseek/deepseek-chat',n:'DeepSeek V3',p:'openrouter'}];
+
+const PER={default:['Default',''],guru:['Guru sabar','Jelaskan seperti guru yang sabar: bertahap dengan contoh sederhana.'],dev:['Programmer','Fokus pada solusi teknis, kode rapi, dan praktik terbaik.'],writer:['Penulis','Gunakan gaya bahasa yang hidup, rapi, dan enak dibaca.'],chill:['Santai','Jawab santai dan singkat, seperti teman.']};
+let users=L('ap_users',{}),me=L('ap_me',null),D,cur=null,busy=false,stopped=false,ctl=null,amode='in';
+const save=()=>{try{W('ap_d_'+me,D)}catch{toast('Penyimpanan penuh, hapus obrolan lama')}},U=()=>users[me],S=()=>D.set;
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2200)}
+
+/* AUTH */
+$$('.tabs button').forEach(b=>b.onclick=()=>{amode=b.dataset.m;$$('.tabs button').forEach(x=>x.classList.toggle('on',x==b));$$('.up').forEach(x=>x.classList.toggle('hide',amode=='in'));$('#asub').textContent=amode=='in'?'Masuk':'Buat akun';$('#aerr').textContent=''});
+$('#eye').onclick=()=>{const p=$('#ap');p.type=p.type=='password'?'text':'password';$('#eye').textContent=p.type=='text'?'Sembunyi':'Lihat'};
+async function auth(){
+ const e=$('#ae').value.trim().toLowerCase(),p=$('#ap').value,er=m=>$('#aerr').textContent=m;
+ if(!/^\S+@\S+\.\S+$/.test(e))return er('Format email belum benar.');
+ if(p.length<6)return er('Kata sandi minimal 6 karakter.');
+ if(amode=='up'){
+  const n=$('#an').value.trim();if(!n)return er('Isi nama kamu.');
+  if(p!==$('#ap2').value)return er('Kata sandi tidak sama.');
+  if(users[e])return er('Email sudah terdaftar. Silakan masuk.');
+  users[e]={name:n,hash:await H(e+':'+p),color:COL[0]};W('ap_users',users);
+ }else{
+  if(!users[e]||users[e].hash!==await H(e+':'+p))return er('Email atau kata sandi salah.');
+ }
+ me=e;W('ap_me',me);boot();
+}
+$('#asub').onclick=auth;$('#auth').addEventListener('keydown',e=>{if(e.key=='Enter')auth()});
+
+/* BOOT */
+function boot(){
+ if(!me||!users[me]){me=null;$('#auth').classList.remove('hide');$('#app').classList.add('hide');return}
+ D=L('ap_d_'+me,{chats:[],set:{}});D.set={...DEF,...D.set};
+ $('#auth').classList.add('hide');$('#app').classList.remove('hide');
+ $('#mode').innerHTML=Object.entries(MODES).map(([k,v])=>`<option value=${k}>${v[0]}</option>`).join('');
+ fillModels();loadAV();skin();prof();cur=null;drawList();drawMsgs();
+}
+function fillModels(){const s=S(),ok=m=>AV[m.p];let cm=MODELS.find(m=>m.id==s.model&&ok(m));if(!cm){cm=MODELS.find(ok);if(cm)s.model=cm.id}
+ $('#model').innerHTML=Object.keys(PROV).map(p=>`<optgroup label="${PROV[p][0]}">`+MODELS.filter(m=>m.p==p).map(m=>`<option value="${m.id}" ${AV[p]?'':'disabled'}>${m.n}${AV[p]?'':' (tidak tersedia)'}</option>`).join('')+'</optgroup>').join('');
+ $('#model').value=s.model}
+$('#model').onchange=()=>{S().model=$('#model').value;save();toast('Model: '+MODELS.find(m=>m.id==S().model).n)};
+function skin(){const s=S(),t=s.theme=='auto'?(matchMedia('(prefers-color-scheme:light)').matches?'light':'dark'):s.theme;
+ document.documentElement.dataset.t=t;document.documentElement.style.setProperty('--fs',s.font+'px');document.body.classList.toggle('noanim',!s.anim)}
+function prof(){const u=U();$('#mav').textContent=u.name[0].toUpperCase();$('#mav').style.background=u.color;$('#mnm').textContent=u.name;$('#mem').textContent=me}
+
+/* CHATS */
+function newChat(){cur=null;drawList();drawMsgs();$('#side').classList.remove('open');$('#shade').classList.remove('open');$('#in').focus()}
+function mk(){cur={id:Date.now(),title:'Obrolan baru',mode:$('#mode').value,msgs:[],t:Date.now()};D.chats.unshift(cur)}
+function drawList(){
+ const q=$('#q').value.toLowerCase();
+ $('#list').innerHTML=D.chats.filter(c=>c.title.toLowerCase().includes(q)).map(c=>`<div class="ci ${cur&&cur.id==c.id?'on':''}" data-id="${c.id}"><span>${esc(c.title)}</span><b data-del="${c.id}">✕</b></div>`).join('')||'<div class="hint" style="padding:10px">Belum ada obrolan.</div>';
+ $('#ttl').textContent=cur?cur.title:'Obrolan baru';
+}
+$('#q').oninput=drawList;
+$('#list').onclick=e=>{
+ const d=e.target.dataset.del;
+ if(d){if(!confirm('Hapus obrolan ini?'))return;D.chats=D.chats.filter(c=>c.id!=d);if(cur&&cur.id==d)cur=null;save();drawList();drawMsgs();return}
+ const c=e.target.closest('.ci');if(c){cur=D.chats.find(x=>x.id==c.dataset.id);$('#mode').value=cur.mode;drawList();drawMsgs();$('#side').classList.remove('open');$('#shade').classList.remove('open')}};
+$('#ttl').onclick=()=>{if(!cur)return;const n=prompt('Nama obrolan:',cur.title);if(n&&n.trim()){cur.title=n.trim().slice(0,60);save();drawList()}};
+$('#new').onclick=newChat;
+$('#menu').onclick=()=>{$('#side').classList.add('open');$('#shade').classList.add('open')};
+$('#shade').onclick=()=>{$('#side').classList.remove('open');$('#shade').classList.remove('open')};
+$('#mode').onchange=()=>{if(cur){cur.mode=$('#mode').value;save()}};
+
+/* RENDER */
+function md(t){const B=[];
+ t=t.replace(/```(\w*)\n?([\s\S]*?)(```|$)/g,(m,l,c)=>{B.push(`<div class="code"><div class="ch"><span>${l||'kode'}</span><button data-cp>Salin</button></div><pre>${esc(c)}</pre></div>`);return '\0'+(B.length-1)+'\0'});
+ t=esc(t).replace(/`([^`\n]+)`/g,'<code>$1</code>').replace(/\*\*([^*\n]+)\*\*/g,'<b>$1</b>').replace(/^#{1,3} (.+)$/gm,'<h4>$1</h4>').replace(/^[-*] (.+)$/gm,'<li>$1</li>').replace(/(<li>.*<\/li>\n?)+/g,m=>'<ul>'+m.replace(/\n/g,'')+'</ul>').replace(/\n/g,'<br>');
+ return t.replace(/\0(\d+)\0/g,(m,i)=>B[i])}
+let sk=0;const stick=()=>{if(sk)return;sk=requestAnimationFrame(()=>{sk=0;const m=$('#msgs');m.scrollTop=m.scrollHeight})};
+function bub(r,txt,an,img,ix){
+ const d=document.createElement('div');d.className='m '+(r=='user'?'u':'a')+(an?' new':'');if(ix!=null)d.dataset.i=ix;
+ d.innerHTML=(r=='user'?'':'<div class="av">A</div>')+`<div class="b">${r=='user'?(img?`<img class="pic" src="${img}">`:'')+esc(txt).replace(/\n/g,'<br>'):md(txt)}</div>`;
+ $('#w').appendChild(d);return d.querySelector('.b')}
+function acts(b,last,u){const a=document.createElement('div');a.className='acts';a.innerHTML=u?'<button data-a="ed">Edit</button>':'<button data-a="cp">Salin</button><button data-a="tt">Suara</button>'+(last?'<button data-a="rg">Ulangi</button>':'');b.appendChild(a)}
+function speak(t){const y=speechSynthesis;if(y.speaking){y.cancel();return}const u=new SpeechSynthesisUtterance(t.replace(/```[\s\S]*?```/g,' kode ').replace(/[*#`]/g,''));u.lang='id-ID';y.speak(u)}
+function drawMsgs(){
+ const w=$('#w');w.innerHTML='';
+ if(!cur||!cur.msgs.length){w.innerHTML=`<div class="empty"><div class="logo" style="justify-content:center"><i></i></div><h2>Halo, ${esc(U().name.split(' ')[0])}</h2><p>Apa yang ingin kita kerjakan hari ini?</p><div class="chips">${['Buatkan fungsi JavaScript untuk debounce','Tulis email profesional untuk menolak penawaran','Jelaskan perbedaan SQL dan NoSQL','Analisis kelebihan dan kekurangan kerja remote'].map(p=>`<button data-p="${p}">${p}</button>`).join('')}</div></div>`;return}
+ cur.msgs.forEach((m,i)=>{const b=bub(m.r,m.c,0,m.img,i);acts(b,i==cur.msgs.length-1,m.r=='user')});
+ $('#msgs').scrollTop=1e9}
+$('#w').onclick=e=>{
+ const p=e.target.dataset.p;if(p)return send(p);
+ if(e.target.dataset.cp!==undefined){navigator.clipboard.writeText(e.target.closest('.code').querySelector('pre').textContent);toast('Kode disalin');return}
+ const a=e.target.dataset.a;if(!a)return;const mm=e.target.closest('.m'),ix=+mm.dataset.i,msg=cur.msgs[ix];
+ if(a=='cp'){navigator.clipboard.writeText(msg.c);toast('Jawaban disalin')}
+ if(a=='tt')speak(msg.c);
+ if(a=='rg'&&!busy){cur.msgs.pop();drawMsgs();reply()}
+ if(a=='ed'&&!busy){const n=prompt('Edit pesan:',msg.c);if(n&&n.trim()){cur.msgs=cur.msgs.slice(0,ix);cur.msgs.push({r:'user',c:n.trim(),img:msg.img});save();drawMsgs();reply()}}};
+
+/* AI */
+function demo(){return 'Aplikasi masih dalam **mode demo** karena API key belum diisi.\n\nBuka **Atur → AI**, isi API key, endpoint (jika memakai proxy), dan model. Setelah itu semua jawaban datang dari model sungguhan.\n\n- Mode saat ini: '+MODES[cur.mode][0]+'\n- Pesan terakhirmu: '+cur.msgs[cur.msgs.length-1].c.slice(0,80)}
+async function ask(onTok){
+ const s=S(),sys=MODES[cur.mode][1]+(PER[s.persona]&&PER[s.persona][1]?'\n'+PER[s.persona][1]:'')+(s.mem?'\nInfo tentang pengguna: '+s.mem:'')+(s.sys?'\n'+s.sys:''),ms=cur.msgs.slice(-20);
+ let vi=-1;ms.forEach((m,i)=>{if(m.img)vi=i});
+ let m=MODELS.find(x=>x.id==s.model);
+ if(vi>=0&&!m.v){const f=MODELS.find(x=>x.v&&AV[x.p]);if(f){m=f;toast('Gambar dianalisis dengan '+f.n)}}
+ const an=m.p=='anthropic';
+ const part=u=>an?{type:'image',source:{type:'base64',media_type:'image/jpeg',data:u.split(',')[1]}}:{type:'image_url',image_url:{url:u}};
+ const h=ms.map((x,i)=>({role:x.r,content:x.img?(i==vi?[{type:'text',text:x.c},part(x.img)]:x.c+' [gambar]'):x.c}));
+ const body={model:m.id,stream:true};
+ if(!m.nt)body.temperature=an?Math.min(s.temp,1):s.temp;
+ if(an){body.max_tokens=4096;body.system=sys;body.messages=h}else body.messages=[{role:'system',content:sys},...h];
+ const r=await fetch(API,{method:'POST',signal:ctl.signal,headers:{'content-type':'application/json'},body:JSON.stringify({p:m.p,body})});
+ if(!r.ok){let e='Permintaan gagal ('+r.status+')';try{e=(await r.json()).error?.message||e}catch{}throw Error(e)}
+ const rd=r.body.getReader(),dc=new TextDecoder();let buf='',out='';
+ for(;;){const{done,value}=await rd.read();if(done)break;buf+=dc.decode(value,{stream:true});const ls=buf.split('\n');buf=ls.pop();
+  for(const l of ls){if(!l.startsWith('data:'))continue;const d=l.slice(5).trim();if(d=='[DONE]')continue;try{const j=JSON.parse(d),t=j.choices?j.choices[0]?.delta?.content:(j.type=='content_block_delta'?j.delta.text:'');if(t){out+=t;onTok(out)}}catch{}}}
+ return out}
+function busyUI(v){busy=v;$('#go').textContent=v?'■':'➤'}
+async function reply(){
+ busyUI(true);stopped=false;ctl=new AbortController();
+ $$('[data-a=rg]').forEach(x=>x.remove());
+ const b=bub('assistant','',1);b.innerHTML='<div class="dots"><i></i><i></i><i></i></div>';stick();
+ let out='',raf=0;const paint=()=>{raf=0;b.innerHTML=md(out);stick()};
+ try{await ask(t=>{out=t;if(!raf)raf=requestAnimationFrame(paint)})}catch(e){if(e.name!='AbortError')out+=(out?'\n\n':'')+'⚠️ '+(e.message=='Failed to fetch'?'Tidak bisa terhubung ke server. Periksa koneksi internet.':e.message)}
+ if(raf)cancelAnimationFrame(raf);
+ if(out){cur.msgs.push({r:'assistant',c:out});cur.t=Date.now();b.innerHTML=md(out);acts(b,true);b.closest('.m').dataset.i=cur.msgs.length-1}else b.closest('.m').remove();
+ save();busyUI(false);drawList()}
+let att=null;
+function usage(n){const d=new Date().toISOString().slice(0,10);if(!D.use||D.use.d!=d)D.use={d,n:0};if(n){D.use.n+=n;save()}return D.use.n}
+async function send(t){
+ t=(t||'').trim();if((!t&&!att)||busy)return;
+ if(usage()>=CFG.limit)return toast('Batas harian '+CFG.limit+' pesan tercapai');
+ if(!cur)mk();
+ let img=null;
+ if(att){if(att.img){img=att.img;t=t||'Tolong analisis gambar ini.'}else t=(t||'Tolong analisis file ini.')+'\n\n['+att.name+']\n'+att.text}
+ cur.msgs.push({r:'user',c:t,img});if(cur.msgs.length==1)cur.title=t.slice(0,40);
+ usage(1);att=null;$('#att').className='hide';
+ $('#in').value='';$('#in').style.height='auto';save();drawList();if(cur.msgs.length==1)$('#w').innerHTML='';
+ acts(bub('user',t,1,img,cur.msgs.length-1),0,1);stick();reply()}
+$('#att0').onclick=()=>$('#fi').click();
+$('#fi').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+ if(f.type.startsWith('image/')){const im=new Image();im.onload=()=>{const k=Math.min(1,768/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);att={name:f.name,img:c.toDataURL('image/jpeg',.7)};chip()};im.src=URL.createObjectURL(f)}
+ else{if(f.size>200000)return toast('File terlalu besar (maks 200 KB)');att={name:f.name,text:(await f.text()).slice(0,8000)};chip()}};
+function chip(){const a=$('#att');a.className='chip';a.innerHTML=`<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📎 ${esc(att.name)}</span><button data-x>✕</button>`}
+$('#att').onclick=e=>{if(e.target.dataset.x!==undefined){att=null;$('#att').className='hide'}};
+$('#go').onclick=()=>{if(busy){stopped=true;ctl&&ctl.abort()}else send($('#in').value)};
+$('#in').oninput=e=>{e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,150)+'px'};
+$('#in').onkeydown=e=>{if(e.key=='Enter'&&!e.shiftKey&&S().enter&&!matchMedia('(max-width:760px)').matches){e.preventDefault();send(e.target.value)}};
+let rec;$('#mic').onclick=()=>{
+ const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R)return toast('Peramban tidak mendukung suara');
+ if(rec){rec.stop();return}rec=new R();rec.lang='id-ID';rec.interimResults=false;$('#mic').classList.add('rec');
+ rec.onresult=e=>{$('#in').value+=(($('#in').value?' ':'')+e.results[0][0].transcript)};
+ rec.onend=()=>{rec=null;$('#mic').classList.remove('rec')};rec.start()};
+$('#exp').onclick=async()=>{if(!cur||!cur.msgs.length)return toast('Belum ada percakapan');
+ const t=`# ${cur.title}\n\n`+cur.msgs.map(m=>`**${m.r=='user'?'Kamu':'Auralis'}:**\n${m.c}`).join('\n\n---\n\n');
+ if(navigator.share){try{await navigator.share({title:cur.title,text:t});return}catch(e){if(e.name=='AbortError')return}}
+ dl(t,'obrolan.md','text/markdown')};
+function dl(t,n,y){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:y}));a.download=n;a.click()}
+
+/* SETTINGS */
+function openS(){
+ const s=S();$('#md').classList.remove('hide');$('#sn').value=U().name;
+ $('#sw').innerHTML=COL.map(c=>`<i data-c="${c}" style="background:${c}" class="${c==U().color?'on':''}"></i>`).join('');
+ $('#th').value=s.theme;$('#fz').value=s.font;$('#fv').textContent=s.font;
+ $('#an2').classList.toggle('on',s.anim);$('#en').classList.toggle('on',s.enter);
+ $('#pr').innerHTML=Object.entries(PER).map(([k,v])=>`<option value=${k}>${v[0]}</option>`).join('');$('#pr').value=s.persona;$('#tp').value=s.temp;$('#tv').textContent=s.temp;$('#sy').value=s.sys;$('#mm').value=s.mem;$('#us').textContent=usage()+' / '+CFG.limit+' pesan';
+ $('#po').value=$('#pn').value=''}
+$('#setb').onclick=openS;$('#mx').onclick=()=>$('#md').classList.add('hide');
+$('#md').onclick=e=>{if(e.target.id=='md')$('#md').classList.add('hide')};
+$$('.st button').forEach(b=>b.onclick=()=>{$$('.st button').forEach(x=>x.classList.toggle('on',x==b));$$('.sp').forEach(p=>p.classList.toggle('hide',p.id!=b.dataset.p))});
+$('#sw').onclick=e=>{if(e.target.dataset.c){$$('#sw i').forEach(x=>x.classList.toggle('on',x==e.target))}};
+$('#sv1').onclick=async()=>{
+ const n=$('#sn').value.trim();if(!n)return toast('Nama tidak boleh kosong');
+ if($('#pn').value){if($('#pn').value.length<6)return toast('Kata sandi baru minimal 6 karakter');
+  if(users[me].hash!==await H(me+':'+$('#po').value))return toast('Kata sandi lama salah');
+  users[me].hash=await H(me+':'+$('#pn').value)}
+ users[me].name=n;users[me].color=($('#sw .on')||{dataset:{c:users[me].color}}).dataset.c;W('ap_users',users);prof();drawMsgs();toast('Profil disimpan')};
+const tg=id=>$(id).onclick=()=>$(id).classList.toggle('on');tg('#an2');tg('#en');
+$('#th').onchange=()=>{S().theme=$('#th').value;save();skin()};
+$('#fz').oninput=()=>{S().font=+$('#fz').value;$('#fv').textContent=S().font;save();skin()};
+$('#an2').addEventListener('click',()=>{S().anim=$('#an2').classList.contains('on');save();skin()});
+$('#en').addEventListener('click',()=>{S().enter=$('#en').classList.contains('on');save()});
+$('#tp').oninput=()=>$('#tv').textContent=$('#tp').value;
+$('#sv3').onclick=()=>{Object.assign(S(),{persona:$('#pr').value,temp:+$('#tp').value,sys:$('#sy').value.trim(),mem:$('#mm').value.trim()});save();toast('Persona disimpan')};
+const DOCS={tos:['Syarat layanan','Auralis AI disediakan apa adanya. Jawaban AI bisa keliru, jadi periksa kembali hal penting. Kamu bertanggung jawab atas isi yang kamu kirim dan tidak boleh memakai layanan ini untuk melanggar hukum atau merugikan orang lain. Batas pemakaian harian berlaku.'],prv:['Kebijakan privasi','Akun dan riwayat obrolanmu disimpan di perangkat ini (penyimpanan lokal browser). Pesan dan lampiran yang kamu kirim diteruskan ke penyedia model AI untuk menghasilkan jawaban. Kamu bisa mengekspor atau menghapus semua data kapan saja lewat Pengaturan, tab Data.']};
+['tos','prv'].forEach(k=>$('#'+k).onclick=()=>{$('#dt').textContent=DOCS[k][0];$('#db').textContent=DOCS[k][1];$('#dc').classList.remove('hide')});
+$('#dx').onclick=()=>$('#dc').classList.add('hide');$('#dc').onclick=e=>{if(e.target.id=='dc')$('#dc').classList.add('hide')};
+let ip;addEventListener('beforeinstallprompt',e=>{e.preventDefault();ip=e});
+$('#ins').onclick=()=>ip?(ip.prompt(),ip=null):toast('Buka menu browser lalu pilih Tambahkan ke layar utama');
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+$('#lo').onclick=()=>{me=null;W('ap_me',null);$('#md').classList.add('hide');$('#ap').value='';boot()};
+$('#ea').onclick=()=>{const x={...D,set:{...D.set,key:''}};dl(JSON.stringify(x,null,2),'auralis-data.json','application/json')};
+$('#ca').onclick=()=>{if(confirm('Hapus semua obrolan?')){D.chats=[];cur=null;save();drawList();drawMsgs();toast('Semua obrolan dihapus')}};
+$('#da').onclick=()=>{if(confirm('Hapus akun beserta semua datanya? Tindakan ini permanen.')){localStorage.removeItem('ap_d_'+me);delete users[me];W('ap_users',users);$('#lo').click()}};
+boot();
+</script></body></html>
