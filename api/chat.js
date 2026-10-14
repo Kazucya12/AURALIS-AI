@@ -2,7 +2,7 @@
 export const config = { runtime: 'edge' };
 
 const P = { // penyedia: [endpoint, nama env var]
-  qwen: ['https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions', 'QWEN_API_KEY'],
+  qwen: [((process.env.QWEN_BASE_URL || 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1').trim().replace(/\/+$/, '').replace(/\/chat\/completions$/, '')) + '/chat/completions', 'QWEN_API_KEY'],
   anthropic: ['https://api.anthropic.com/v1/messages', 'ANTHROPIC_API_KEY'],
   openai: ['https://api.openai.com/v1/chat/completions', 'OPENAI_API_KEY'],
   gemini: ['https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', 'GEMINI_API_KEY'],
@@ -15,7 +15,7 @@ const P = { // penyedia: [endpoint, nama env var]
 
 // Hanya model di daftar ini yang boleh dipanggil (mencegah penyalahgunaan model mahal).
 const MODELS = {
-  qwen: ['qwen-plus', 'qwen-max', 'qwen-turbo', 'qwen-vl-plus'],
+  qwen: ['qwen-plus', 'qwen-max', 'qwen-turbo', 'qwen-vl-plus', ...(process.env.QWEN_EXTRA_MODELS || '').split(',').map(s => s.trim()).filter(Boolean)],
   anthropic: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'],
   openai: ['gpt-5', 'gpt-5-mini', 'gpt-4o', 'gpt-4o-mini'],
   gemini: ['gemini-2.5-pro', 'gemini-2.5-flash'],
@@ -56,7 +56,7 @@ export default async function handler(req) {
   let d; try { d = await req.json(); } catch { return J({ error: { message: 'Body tidak valid' } }, 400); }
   const pv = P[d.p], b = d.body;
   if (!pv || !b || !(MODELS[d.p] || []).includes(b.model)) return J({ error: { message: 'Model tidak diizinkan' } }, 400);
-  const key = process.env[pv[1]];
+  const key = (process.env[pv[1]] || '').trim();
   if (!key) return J({ error: { message: 'Penyedia ini belum dikonfigurasi di server' } }, 503);
 
   const an = d.p === 'anthropic';
