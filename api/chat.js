@@ -28,6 +28,18 @@ const MODELS = {
   openrouter: ['anthropic/claude-sonnet-4.5', 'openai/gpt-4o', 'google/gemini-2.5-flash', 'deepseek/deepseek-chat'],
 };
 
+
+// Semua model di dropdown dipetakan ke model gateway (Dattio). Tanpa env var tambahan.
+const MAP = {
+  'qwen-plus': 'glm-5.3', 'qwen-max': 'deepseek-v4-pro', 'qwen-turbo': 'glm-5.3-flash', 'qwen-vl-plus': 'deepseek-v4-flash-vision-exp',
+  'claude-opus-5-5': 'claude-opus-5-5', 'claude-sonnet-5-5': 'claude-sonnet-5-5', 'claude-haiku-5-5': 'claude-sonnet-5-5',
+  'gpt-5': 'gpt-5.6', 'gpt-5-mini': 'gpt-5.6-luna', 'gpt-4o': 'gpt-5.6', 'gpt-4o-mini': 'gpt-5.6-luna',
+  'gemini-2.5-pro': 'glm-5.3', 'gemini-2.5-flash': 'glm-5.3-flash',
+  'deepseek-chat': 'deepseek-v4-flash', 'deepseek-reasoner': 'deepseek-v4-pro',
+  'llama-3.3-70b-versatile': 'glm-5.3-flash', 'mistral-large-latest': 'glm-5.3', 'grok-4': 'kimi-k3',
+};
+const DEFAULT_GW_MODEL = 'glm-5.3';
+
 const hits = new Map();
 function limited(ip) {
   const now = Date.now(), LIM = +process.env.RATE_LIMIT || 30, WIN = 10 * 60e3;
@@ -114,7 +126,7 @@ export default async function handler(req) {
         out.models_status = m.status;
         try { out.models = JSON.parse(t).data.map(x => x.id); } catch { out.models_raw = t.slice(0, 300); }
       } catch (e) { out.models_error = String(e); }
-      const model = u.searchParams.get('model') || gm || 'glm-5.3';
+      const model = u.searchParams.get('model') || gm || DEFAULT_GW_MODEL;
       try {
         const c = await fetch(P.qwen[0], {
           method: 'POST', headers: { 'content-type': 'application/json', ...auth },
@@ -161,7 +173,7 @@ export default async function handler(req) {
   }
 
   // Lewat gateway: model yang tidak ada di QWEN_EXTRA_MODELS diganti ke GATEWAY_MODEL
-  if (gm && (viaGw || d.p === 'qwen') && !EXTRA.includes(body.model)) body.model = gm;
+  if (viaGw || d.p === 'qwen') body.model = EXTRA.includes(body.model) ? body.model : (MAP[body.model] || gm || DEFAULT_GW_MODEL);
 
   let r;
   try { r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) }); }
