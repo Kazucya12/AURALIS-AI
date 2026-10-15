@@ -135,7 +135,8 @@ export default async function handler(req) {
     if (body.max_tokens) body.max_tokens = Math.min(+body.max_tokens || 4096, 4096);
     headers.authorization = 'Bearer ' + key;
   }
-
+const gm = (process.env.GATEWAY_MODEL || '').trim();
+if (gm && (viaGw || d.p === 'qwen')) body.model = gm;
   let r;
   try { r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) }); }
   catch { return J({ error: { message: 'Penyedia tidak bisa dihubungi' } }, 502); }
