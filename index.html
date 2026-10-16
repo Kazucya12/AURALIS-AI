@@ -118,6 +118,7 @@ pre{padding:12px;overflow:auto;font:.84em/1.5 ui-monospace,Menlo,monospace;color
 <div class="f"><label>Email</label><input id="ae" type="email" autocomplete="email" placeholder="kamu@email.com"></div>
 <div class="f"><label>Kata sandi</label><input id="ap" type="password" autocomplete="current-password" placeholder="Minimal 6 karakter"><button class="eye" id="eye">Lihat</button></div>
 <div class="f up hide"><label>Ulangi kata sandi</label><input id="ap2" type="password" autocomplete="new-password"></div>
+<div class="f hide" id="codef"><label>Kode verifikasi (cek inbox atau spam)</label><input id="acode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6 digit"><button class="eye" id="resend" type="button">Kirim ulang</button></div>
 <div class="err" id="aerr"></div>
 <button class="btn" id="asub" style="width:100%">Masuk</button>
 </div></div>
@@ -207,8 +208,18 @@ const save=()=>{try{W('ap_d_'+me,D)}catch{toast('Penyimpanan penuh, hapus obrola
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2200)}
 
 /* AUTH */
-$$('.tabs button').forEach(b=>b.onclick=()=>{amode=b.dataset.m;$$('.tabs button').forEach(x=>x.classList.toggle('on',x==b));$$('.up').forEach(x=>x.classList.toggle('hide',amode=='in'));$('#asub').textContent=amode=='in'?'Masuk':'Buat akun';$('#aerr').textContent=''});
+$$('.tabs button').forEach(b=>b.onclick=()=>{amode=b.dataset.m;$$('.tabs button').forEach(x=>x.classList.toggle('on',x==b));$$('.up').forEach(x=>x.classList.toggle('hide',amode=='in'));OTP=null;$('#codef').classList.add('hide');$('#asub').textContent=amode=='in'?'Masuk':'Buat akun';$('#aerr').textContent=''});
 $('#eye').onclick=()=>{const p=$('#ap');p.type=p.type=='password'?'text':'password';$('#eye').textContent=p.type=='text'?'Sembunyi':'Lihat'};
+let OTP=null,MAILON=false;const OTPAPI=window.AURALIS_OTP||'/api/otp';
+const otp=async b=>{try{const r=await fetch(OTPAPI,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));return r.ok?{ok:true,...j}:{ok:false,error:j.error||'Gagal ('+r.status+')'}}catch{return{ok:false,error:'Tidak bisa terhubung ke server.'}}};
+async function sendCode(e){
+ $('#asub').disabled=true;$('#aerr').textContent='Mengirim kode...';
+ const r=await otp({action:'send',email:e});$('#asub').disabled=false;
+ if(!r.ok){$('#aerr').textContent=r.error;return}
+ OTP={email:e,token:r.token,exp:r.exp};$('#codef').classList.remove('hide');$('#asub').textContent='Verifikasi & buat akun';$('#acode').value='';$('#acode').focus();
+ $('#aerr').textContent='Kode dikirim ke '+e+'. Cek inbox atau folder spam.'}
+$('#resend').onclick=()=>{const e=$('#ae').value.trim().toLowerCase();if(/^\S+@\S+\.\S+$/.test(e))sendCode(e)};
+fetch(OTPAPI).then(r=>r.json()).then(j=>{MAILON=!!j.enabled}).catch(()=>{});
 async function auth(){
  const e=$('#ae').value.trim().toLowerCase(),p=$('#ap').value,er=m=>$('#aerr').textContent=m;
  if(!/^\S+@\S+\.\S+$/.test(e))return er('Format email belum benar.');
@@ -217,6 +228,14 @@ async function auth(){
   const n=$('#an').value.trim();if(!n)return er('Isi nama kamu.');
   if(p!==$('#ap2').value)return er('Kata sandi tidak sama.');
   if(users[e])return er('Email sudah terdaftar. Silakan masuk.');
+  if(MAILON){
+   if(!OTP||OTP.email!==e){await sendCode(e);return}
+   const c=$('#acode').value.trim();
+   if(!/^\d{6}$/.test(c))return er('Masukkan 6 digit kode dari email.');
+   const v=await otp({action:'verify',email:e,code:c,token:OTP.token,exp:OTP.exp});
+   if(!v.ok)return er(v.error||'Kode salah atau kedaluwarsa.');
+   OTP=null;$('#codef').classList.add('hide');
+  }
   users[e]={name:n,hash:await H(e+':'+p),color:COL[0]};W('ap_users',users);
  }else{
   if(!users[e]||users[e].hash!==await H(e+':'+p))return er('Email atau kata sandi salah.');
