@@ -1,35 +1,15 @@
-// Vercel Edge Function: proxy aman. API key hanya dibaca dari environment variable server.
-// Jika key provider asli kosong, request dialihkan lewat gateway (QWEN_BASE_URL + QWEN_API_KEY).
+// Vercel Edge Function: proxy khusus gateway Dattio.
+// Env yang dipakai: QWEN_API_KEY (wajib), QWEN_BASE_URL (URL gateway), GATEWAY_MODEL (opsional, default model),
+// QWEN_EXTRA_MODELS (opsional), ALLOWED_ORIGINS (opsional), RATE_LIMIT (opsional).
 export const config = { runtime: 'edge' };
 
-const P = { // penyedia: [endpoint, nama env var]
-  qwen: [((process.env.QWEN_BASE_URL || 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1').trim().replace(/\/+$/, '').replace(/\/chat\/completions$/, '')) + '/chat/completions', 'QWEN_API_KEY'],
-  anthropic: ['https://api.anthropic.com/v1/messages', 'ANTHROPIC_API_KEY'],
-  openai: ['https://api.openai.com/v1/chat/completions', 'OPENAI_API_KEY'],
-  gemini: ['https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', 'GEMINI_API_KEY'],
-  deepseek: ['https://api.deepseek.com/chat/completions', 'DEEPSEEK_API_KEY'],
-  groq: ['https://api.groq.com/openai/v1/chat/completions', 'GROQ_API_KEY'],
-  mistral: ['https://api.mistral.ai/v1/chat/completions', 'MISTRAL_API_KEY'],
-  xai: ['https://api.x.ai/v1/chat/completions', 'XAI_API_KEY'],
-  openrouter: ['https://openrouter.ai/api/v1/chat/completions', 'OPENROUTER_API_KEY'],
-};
+const GW_URL = (process.env.QWEN_BASE_URL || 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1')
+  .trim().replace(/\/+$/, '').replace(/\/chat\/completions$/, '') + '/chat/completions';
 
 const EXTRA = (process.env.QWEN_EXTRA_MODELS || '').split(',').map(s => s.trim()).filter(Boolean);
+const DEFAULT_GW_MODEL = (process.env.GATEWAY_MODEL || '').trim() || 'glm-5.3';
 
-const MODELS = {
-  qwen: ['qwen-plus', 'qwen-max', 'qwen-turbo', 'qwen-vl-plus', ...EXTRA],
-  anthropic: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'],
-  openai: ['gpt-5', 'gpt-5-mini', 'gpt-4o', 'gpt-4o-mini'],
-  gemini: ['gemini-2.5-pro', 'gemini-2.5-flash'],
-  deepseek: ['deepseek-chat', 'deepseek-reasoner'],
-  groq: ['llama-3.3-70b-versatile'],
-  mistral: ['mistral-large-latest'],
-  xai: ['grok-4'],
-  openrouter: ['anthropic/claude-sonnet-4.5', 'openai/gpt-4o', 'google/gemini-2.5-flash', 'deepseek/deepseek-chat'],
-};
-
-
-// Semua model di dropdown dipetakan ke model gateway (Dattio). Tanpa env var tambahan.
+// Nama di dropdown -> model Dattio
 const MAP = {
   'qwen-plus': 'glm-5.3', 'qwen-max': 'deepseek-v4-pro', 'qwen-turbo': 'glm-5.3-flash', 'qwen-vl-plus': 'deepseek-v4-flash-vision-exp',
   'claude-opus-5-5': 'claude-opus-5-5', 'claude-sonnet-5-5': 'claude-sonnet-5-5', 'claude-haiku-5-5': 'claude-sonnet-5-5',
@@ -38,7 +18,12 @@ const MAP = {
   'deepseek-chat': 'deepseek-v4-flash', 'deepseek-reasoner': 'deepseek-v4-pro',
   'llama-3.3-70b-versatile': 'glm-5.3-flash', 'mistral-large-latest': 'glm-5.3', 'grok-4': 'kimi-k3',
 };
-const DEFAULT_GW_MODEL = 'glm-5.3';
+const GW_IDS = new Set([...Object.values(MAP), ...EXTRA]);
+
+function pickModel(m) {
+  if (GW_IDS.has(m)) return m;      // ID Dattio langsung
+  return MAP[m] || DEFAULT_GW_MODEL; // dropdown lama / "auto" / tidak dikenal -> default
+}
 
 const hits = new Map();
 function limited(ip) {
@@ -107,7 +92,6 @@ export default async function handler(req) {
   const J = (o, st = 200) => new Response(JSON.stringify(o), { status: st, headers: { ...cors, 'content-type': 'application/json' } });
 
   const gwKey = (process.env.QWEN_API_KEY || '').trim();
-  const gm = (process.env.GATEWAY_MODEL || '').trim();
   const ip = (req.headers.get('x-forwarded-for') || 'x').split(',')[0].trim();
 
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
@@ -115,20 +99,20 @@ export default async function handler(req) {
 
   if (req.method === 'GET') {
     const u = new URL(req.url);
-    if (u.searchParams.get('debug') === '1') { // diagnosa gateway (tanpa menampilkan key)
+    if (u.searchParams.get('debug') === '1') {
       if (limited(ip)) return J({ error: 'Terlalu banyak permintaan' }, 429);
       if (!gwKey) return J({ error: 'QWEN_API_KEY kosong di server' });
-      const out = { gateway_url: P.qwen[0], GATEWAY_MODEL: gm || null, extra_models: EXTRA };
+      const out = { gateway_url: GW_URL, default_model: DEFAULT_GW_MODEL, extra_models: EXTRA };
       const auth = { authorization: 'Bearer ' + gwKey };
       try {
-        const m = await fetch(P.qwen[0].replace(/\/chat\/completions$/, '') + '/models', { headers: auth });
+        const m = await fetch(GW_URL.replace(/\/chat\/completions$/, '') + '/models', { headers: auth });
         const t = await m.text();
         out.models_status = m.status;
         try { out.models = JSON.parse(t).data.map(x => x.id); } catch { out.models_raw = t.slice(0, 300); }
       } catch (e) { out.models_error = String(e); }
-      const model = u.searchParams.get('model') || gm || DEFAULT_GW_MODEL;
+      const model = u.searchParams.get('model') || DEFAULT_GW_MODEL;
       try {
-        const c = await fetch(P.qwen[0], {
+        const c = await fetch(GW_URL, {
           method: 'POST', headers: { 'content-type': 'application/json', ...auth },
           body: JSON.stringify({ model, messages: [{ role: 'user', content: 'halo' }], max_tokens: 20 }),
         });
@@ -136,50 +120,35 @@ export default async function handler(req) {
       } catch (e) { out.test_error = String(e); }
       return J(out);
     }
-    return J(Object.fromEntries(Object.entries(P).map(([k, v]) => [
-      k, !!(process.env[v[1]] || '').trim() || (!!gwKey && k !== 'openrouter'),
-    ])));
+    // Status ketersediaan: semua penyedia aktif selama key gateway ada
+    const names = ['qwen', 'anthropic', 'openai', 'gemini', 'deepseek', 'groq', 'mistral', 'xai', 'openrouter'];
+    return J(Object.fromEntries(names.map(k => [k, !!gwKey])));
   }
 
   if (req.method !== 'POST') return J({ error: { message: 'Method tidak didukung' } }, 405);
   if (+req.headers.get('content-length') > 3e6) return J({ error: { message: 'Lampiran terlalu besar' } }, 413);
   if (limited(ip)) return J({ error: { message: 'Terlalu banyak permintaan. Coba lagi beberapa menit lagi.' } }, 429);
+  if (!gwKey) return J({ error: { message: 'QWEN_API_KEY belum diatur di server' } }, 503);
 
   let d; try { d = await req.json(); } catch { return J({ error: { message: 'Body tidak valid' } }, 400); }
-  const pv = P[d.p], b = d.body;
-  if (!pv || !b) return J({ error: { message: 'Model tidak diizinkan' } }, 400);
-
-  const ownKey = (process.env[pv[1]] || '').trim();
-  const viaGw = !ownKey && !!gwKey && d.p !== 'qwen' && d.p !== 'openrouter';
-
-  const allowed = (MODELS[d.p] || []).includes(b.model) || (viaGw && EXTRA.includes(b.model));
-  if (!allowed) return J({ error: { message: 'Model tidak diizinkan' } }, 400);
-
-  const key = viaGw ? gwKey : ownKey;
-  if (!key) return J({ error: { message: 'Penyedia ini belum dikonfigurasi di server' } }, 503);
+  const b = d && d.body;
+  if (!b || !Array.isArray(b.messages)) return J({ error: { message: 'Body tidak valid' } }, 400);
 
   const an = d.p === 'anthropic';
-  const url = viaGw ? P.qwen[0] : pv[0];
-
-  let body, headers = { 'content-type': 'application/json' };
-  if (an && !viaGw) {
-    body = { ...b, stream: true };
-    body.max_tokens = Math.min(+body.max_tokens || 4096, 4096);
-    headers['x-api-key'] = key; headers['anthropic-version'] = '2023-06-01';
-  } else {
-    body = an ? toOpenAI(b) : { ...b, stream: true };
-    if (body.max_tokens) body.max_tokens = Math.min(+body.max_tokens || 4096, 4096);
-    headers.authorization = 'Bearer ' + key;
-  }
-
-  // Lewat gateway: model yang tidak ada di QWEN_EXTRA_MODELS diganti ke GATEWAY_MODEL
-  if (viaGw || d.p === 'qwen') body.model = EXTRA.includes(body.model) ? body.model : (MAP[body.model] || gm || DEFAULT_GW_MODEL);
+  const body = an ? toOpenAI(b) : { ...b, stream: true };
+  if (body.max_tokens) body.max_tokens = Math.min(+body.max_tokens || 4096, 4096);
+  body.model = pickModel(b.model);
 
   let r;
-  try { r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) }); }
-  catch { return J({ error: { message: 'Penyedia tidak bisa dihubungi' } }, 502); }
+  try {
+    r = await fetch(GW_URL, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer ' + gwKey },
+      body: JSON.stringify(body),
+    });
+  } catch { return J({ error: { message: 'Gateway tidak bisa dihubungi' } }, 502); }
 
-  const convert = an && viaGw && r.ok && r.body;
+  const convert = an && r.ok && r.body;
   return new Response(convert ? toAnthropicStream(r.body) : r.body, {
     status: r.status,
     headers: { ...cors, 'content-type': convert ? 'text/event-stream' : (r.headers.get('content-type') || 'text/event-stream'), 'cache-control': 'no-store' },
