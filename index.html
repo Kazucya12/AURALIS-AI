@@ -319,7 +319,7 @@ const TZS=[['auto','Otomatis (perangkat)'],['Asia/Jakarta','WIB · Jakarta'],['A
 
 let users=L('ap_users',{}),me=L('ap_me',null),D=null,cur=null,busy=false,ctl=null,amode='in',tab=L('ap_tab','chat'),att=null,POM=L('ap_pom',null),lastAct=Date.now(),cl='',CODE=[],subSig='';
 const S=()=>D.set,U=()=>users[me];
-const save=()=>{if(!D)return;if(!W('ap_d_'+me,{...D,chats:D.chats.filter(c=>!c.tmp)}))toast('Penyimpanan penuh, hapus obrolan lama')};
+const save=()=>{if(!D)return;if(!W('ap_d_'+me,{...D,chats:D.chats.filter(c=>!c.tmp)}))toast('Penyimpanan penuh, hapus obrolan lama');if(typeof schedSync=='function')schedSync()};
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2400)}
 
 /* ===== waktu ===== */
@@ -412,13 +412,13 @@ async function auth(){
  me=e;W('ap_me',me);$('#ap').value=$('#ap2').value='';$('#aerr').textContent='';boot();
 }
 $('#asub').onclick=auth;$('#auth').addEventListener('keydown',e=>{if(e.key=='Enter')auth()});
-function logout(){me=null;W('ap_me',null);closeAll();const l=$('#lock');if(l)l.remove();$('#ap').value='';boot()}
+function logout(){if(typeof syStop=='function')syStop();me=null;W('ap_me',null);closeAll();const l=$('#lock');if(l)l.remove();$('#ap').value='';boot()}
 
 /* ===== BOOT ===== */
 function boot(){
  if(!me||!users[me]){me=null;D=null;$('#auth').classList.remove('hide');$('#app').classList.add('hide');return}
  const x=L('ap_d_'+me,{});
- D={chats:[],proj:[],arts:[],snip:[],prm:[],stats:{},act:null,...x};
+ D={chats:[],proj:[],arts:[],snip:[],prm:[],stats:{},tomb:{},act:null,...x};
  D.set={...DEF,...(x.set||{}),sh:{...DEF.sh,...((x.set||{}).sh||{})}};delete D.set.key;
  if(D.act&&!D.proj.find(p=>p.id==D.act))D.act=null;
  if(POM&&Date.now()>POM.end+36e5)POM=null;
@@ -426,7 +426,7 @@ function boot(){
  $('#auth').classList.add('hide');$('#app').classList.remove('hide');
  $('#mode').innerHTML=Object.entries(MODES).map(([k,v])=>`<option value=${k}>${v[0]}</option>`).join('');
  fillModels();loadAV();skin();prof();side();drawMsgs();drawTitle();drawSub(1);
- if(S().pin)lock()}
+ if(S().pin)lock();if(typeof syInit=='function')syInit()}
 function purge(){if(S().del){const lim=Date.now()-S().del*864e5;D.chats=D.chats.filter(c=>c.pin||c.t>lim)}}
 function fillModels(){if(!D)return;const s=S(),ok=m=>AV[m.p];let cm=MODELS.find(m=>m.id==s.model&&ok(m));if(!cm){cm=MODELS.find(ok);if(cm)s.model=cm.id}
  $('#model').innerHTML=Object.keys(PROV).map(p=>`<optgroup label="${PROV[p][0]}">`+MODELS.filter(m=>m.p==p).map(m=>`<option value="${m.id}" ${AV[p]?'':'disabled'}>${m.n}${AV[p]?'':' (tidak tersedia)'}</option>`).join('')+'</optgroup>').join('');
@@ -504,7 +504,7 @@ function mk(){cur={id:Date.now(),title:'Obrolan baru',mode:$('#mode').value,msgs
 function openChat(id){const c=D.chats.find(x=>x.id==id);if(!c)return;cur=c;$('#mode').value=c.mode;tab='chat';W('ap_tab',tab);side();drawMsgs();drawTitle();drawSub(1);closeAll();$('#side').classList.remove('open');$('#shade').classList.remove('open')}
 function newChat(){cur=null;if(tab!='chat'){tab='chat';W('ap_tab',tab)}side();drawMsgs();drawTitle();drawSub(1);$('#side').classList.remove('open');$('#shade').classList.remove('open');$('#in').focus()}
 function pinChat(id){const c=D.chats.find(x=>x.id==id);if(!c)return;c.pin=!c.pin;save();side()}
-function delChat(id){if(!confirm('Hapus obrolan ini?'))return;D.chats=D.chats.filter(c=>c.id!=id);if(cur&&cur.id==id){cur=null;drawMsgs();drawTitle()}save();side();drawSub(1)}
+function delChat(id){if(!confirm('Hapus obrolan ini?'))return;tomb('c'+id);D.chats=D.chats.filter(c=>c.id!=id);if(cur&&cur.id==id){cur=null;drawMsgs();drawTitle()}save();side();drawSub(1)}
 function rename(){if(!cur)return;const n=prompt('Nama obrolan:',cur.title);if(n&&n.trim()){cur.title=n.trim().slice(0,60);save();side();drawTitle()}}
 function toggleTmp(){if(cur){cur.tmp=!cur.tmp;toast(cur.tmp?'Obrolan ini sementara dan tidak disimpan':'Obrolan akan disimpan')}else{S().tmp=!S().tmp;toast(S().tmp?'Obrolan baru bersifat sementara':'Obrolan baru akan disimpan')}save();side();drawSub(1)}
 function moveProj(){if(!cur)return;popMenu([{ic:'∅',t:'Tanpa proyek',f:()=>{cur.pid=null;save();side();drawSub(1)}},...D.proj.map(p=>({ic:'▣',t:p.name,f:()=>{cur.pid=p.id;save();side();drawSub(1);toast('Dipindahkan ke '+p.name)}}))],$('#mor'))}
@@ -739,7 +739,7 @@ function codeView(c){
   else if(a=='dl')dl(c.code,'kode.'+(EXT[c.lang]||'txt'),'text/plain');
   else if(a=='pv')artView({title:'Pratinjau '+c.lang,type:c.lang,code:c.code});
   else if(a=='sv'){D.snip.unshift({id:Date.now(),lang:c.lang,code:c.code,h:c.h||hash(c.code),title:(c.code.split('\n')[0]||'').slice(0,40),t:Date.now()});save();side();closeOv(o);toast('Disimpan ke Kode')}
-  else if(a=='rm'){if(!confirm('Hapus potongan kode ini?'))return;D.snip=D.snip.filter(x=>x.id!=c.id);save();side();closeOv(o)}
+  else if(a=='rm'){if(!confirm('Hapus potongan kode ini?'))return;tomb('s'+c.id);D.snip=D.snip.filter(x=>x.id!=c.id);save();side();closeOv(o)}
   else if(a=='go')openChat(c.cid)})}
 function newSnip(){
  closeAll();
@@ -767,7 +767,7 @@ function projView(id){
  const pc=()=>{const L=D.chats.filter(c=>c.pid==p.id).slice(0,8);q('.pcl').innerHTML=ex&&L.length?'<div class="hint" style="margin-bottom:6px">Obrolan di proyek ini</div>'+L.map(c=>`<div class="ci" data-id="${c.id}" style="animation:none"><span>${esc(c.title)}</span></div>`).join(''):''};
  const lab=()=>{q('[data-a=act]').textContent=D.act==p.id?'Nonaktifkan proyek':'Jadikan proyek aktif'};
  const read=()=>{p.name=q('.pjn').value.trim();p.ins=q('.pji').value.trim();p.color=(q('.pjc .on')||{dataset:{c:p.color}}).dataset.c};
- const commit=()=>{read();if(!p.name){toast('Nama proyek wajib diisi');return false}const i=D.proj.findIndex(x=>x.id==p.id);if(i<0)D.proj.unshift(p);else D.proj[i]=p;save();side();drawSub(1);return true};
+ const commit=()=>{read();if(!p.name){toast('Nama proyek wajib diisi');return false}p.t=Date.now();const i=D.proj.findIndex(x=>x.id==p.id);if(i<0)D.proj.unshift(p);else D.proj[i]=p;save();side();drawSub(1);return true};
  q('.pjc').onclick=e=>{const c=e.target.closest('[data-c]');if(c)q('.pjc').querySelectorAll('i').forEach(x=>x.classList.toggle('on',x==c))};
  q('.kl').onclick=e=>{const r=e.target.dataset.rm;if(r!==undefined){p.know.splice(+r,1);kn()}};
  q('.pcl').onclick=e=>{const c=e.target.closest('.ci');if(c)openChat(+c.dataset.id)};
@@ -779,7 +779,7 @@ function projView(id){
   else if(a=='save'){if(commit()){toast('Proyek disimpan');closeOv(o)}}
   else if(a=='act'){if(!commit())return;D.act=D.act==p.id?null:p.id;save();side();if(!busy)drawMsgs();drawSub(1);lab();toast(D.act?'Proyek aktif: '+p.name:'Proyek dinonaktifkan')}
   else if(a=='chat'){if(!commit())return;D.act=p.id;save();closeOv(o);newChat();drawSub(1)}
-  else if(a=='del'){if(!confirm('Hapus proyek ini? Obrolannya tidak ikut terhapus.'))return;D.chats.forEach(c=>{if(c.pid==p.id)c.pid=null});D.proj=D.proj.filter(x=>x.id!=p.id);if(D.act==p.id)D.act=null;save();side();drawSub(1);if(!busy)drawMsgs();closeOv(o)}});
+  else if(a=='del'){if(!confirm('Hapus proyek ini? Obrolannya tidak ikut terhapus.'))return;D.chats.forEach(c=>{if(c.pid==p.id)c.pid=null});tomb('p'+p.id);D.proj=D.proj.filter(x=>x.id!=p.id);if(D.act==p.id)D.act=null;save();side();drawSub(1);if(!busy)drawMsgs();closeOv(o)}});
  kn();pc();lab()}
 
 /* ===== Berbagi ===== */
@@ -930,7 +930,7 @@ info(){return `<h3>Info</h3><div class="grp">${fr('Auralis AI','Versi 2.0','<spa
  <div class="pvw"><b>Pintasan</b><div class="hint" style="margin-top:6px;line-height:1.9">Ctrl+K palet perintah<br>Ctrl+. mode fokus<br>Ctrl+, pengaturan<br>/ di kolom pesan: prompt cepat<br>Esc tutup jendela</div></div>`}};
 function renderPane(anim){
  if(!PANE||!PANE.isConnected)return;
- const st=PANE.scrollTop,tm=PANE.querySelector('textarea:focus');if(tm&&!anim)return;
+ const st=PANE.scrollTop,tm=PANE.querySelector('textarea:focus,input:focus');if(tm&&!anim)return;
  PANE.innerHTML=SEC[SECID]();
  if(anim){PANE.style.animation='none';void PANE.offsetWidth;PANE.style.animation='';PANE.scrollTop=0}else PANE.scrollTop=st;
  const r=document.querySelector('#srail');if(r)r.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.s==SECID))}
@@ -977,12 +977,13 @@ async function act(d,el,root){
     const ids=new Set(D.chats.map(c=>c.id));D.chats.push(...j.chats.filter(c=>c&&c.id&&!ids.has(c.id)));
     const mg=(k,key)=>{const a=D[k]=D[k]||[],s=new Set(a.map(x=>x[key]));(j[k]||[]).forEach(x=>{if(x&&!s.has(x[key]))a.push(x)})};mg('proj','id');mg('arts','id');mg('snip','h');mg('prm','n');
     save();side();toast('Data digabungkan')}catch{toast('Berkas tidak valid')}};f.click()}
- else if(d=='clr-chats'){if(confirm('Hapus semua obrolan?')){D.chats=[];cur=null;save();side();drawMsgs();drawTitle();drawSub(1);toast('Semua obrolan dihapus')}}
- else if(d=='clr-code'){if(confirm('Hapus semua kode tersimpan dan artefak?')){D.snip=[];D.arts=[];save();side();toast('Dihapus')}}
+ else if(d=='clr-chats'){if(confirm('Hapus semua obrolan?')){D.chats.forEach(c=>tomb('c'+c.id));D.chats=[];cur=null;save();side();drawMsgs();drawTitle();drawSub(1);toast('Semua obrolan dihapus')}}
+ else if(d=='clr-code'){if(confirm('Hapus semua kode tersimpan dan artefak?')){D.snip.forEach(x=>tomb('s'+x.id));D.arts.forEach(x=>tomb('a'+x.id));D.snip=[];D.arts=[];save();side();toast('Dihapus')}}
  else if(d=='reset'){if(confirm('Kembalikan semua pengaturan ke bawaan? PIN tidak berubah.')){const k={pin:S().pin,pinl:S().pinl,lockm:S().lockm};D.set={...DEF,sh:{...DEF.sh},...k};save();skin();prof();drawSub(1);renderPane();toast('Pengaturan direset')}}
- else if(d=='del-acc'){if(confirm('Hapus akun beserta semua datanya? Tindakan ini permanen.')){const e=me;try{localStorage.removeItem('ap_d_'+e)}catch{}delete users[e];W('ap_users',users);POM=null;W('ap_pom',null);logout()}}
+ else if(d=='del-acc'){if(confirm('Hapus akun beserta semua datanya? Tindakan ini permanen.')){const e=me;try{localStorage.removeItem('ap_d_'+e);localStorage.removeItem('ap_sync_'+e);localStorage.removeItem('ap_sync_'+e+'_t')}catch{}delete users[e];W('ap_users',users);POM=null;W('ap_pom',null);logout()}}
  else if(d=='install'){if(IP){IP.prompt();IP=null}else toast('Buka menu browser lalu pilih Tambahkan ke layar utama')}
- else if(d=='tos'||d=='prv')docView(d)}
+ else if(d=='tos'||d=='prv')docView(d)
+ else if(d.startsWith('sy-'))syAct(d,el,root)}
 
 /* ===== PIN dan kunci ===== */
 function padEl(len,title,sub,onPin,extra){
@@ -1058,5 +1059,130 @@ document.addEventListener('pointerdown',e=>{
  const r=b.getBoundingClientRect(),s=Math.max(r.width,r.height)*2,x=document.createElement('span');
  x.className='rp';x.style.cssText=`width:${s}px;height:${s}px;left:${e.clientX-r.left-s/2}px;top:${e.clientY-r.top-s/2}px`;b.appendChild(x);setTimeout(()=>x.remove(),650)},{passive:true});
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+/* ===== Auralis AI v2.0 · bagian 4: sinkron antar perangkat (terenkripsi ujung ke ujung) ===== */
+const SYAPI=window.AURALIS_SYNC||'/api/sync',SYMAX=900000,B32='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+const SY={on:false,code:'',keys:null,v:0,last:0,st:'',busy:false,t:0,merging:false,enabled:null};
+const syKey=()=>'ap_sync_'+me;
+const tomb=k=>{D.tomb=D.tomb||{};D.tomb[k]=Date.now()};
+const normCode=c=>String(c||'').toUpperCase().replace(/[^A-Z2-7]/g,'');
+const fmtCode=n=>(n.match(/.{1,4}/g)||[]).join('-');
+function genCode(){const r=crypto.getRandomValues(new Uint8Array(16));return fmtCode([...r].map(x=>B32[x%32]).join(''))}
+const b64=u=>{let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)};
+const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const hexs=u=>[...u].map(b=>b.toString(16).padStart(2,'0')).join('');
+async function syDerive(code){
+ const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(normCode(code)),'PBKDF2',false,['deriveBits']);
+ const bits=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt:new TextEncoder().encode('auralis-sync-v1'),iterations:200000,hash:'SHA-256'},km,768));
+ return{id:hexs(bits.slice(0,32)),ws:hexs(bits.slice(32,64)),aes:await crypto.subtle.importKey('raw',bits.slice(64,96),'AES-GCM',false,['encrypt','decrypt'])}}
+async function syPack(obj){
+ let raw=new TextEncoder().encode(JSON.stringify(obj)),z=0;
+ if(window.CompressionStream){raw=new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());z=1}
+ const iv=crypto.getRandomValues(new Uint8Array(12)),ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},SY.keys.aes,raw)),o=new Uint8Array(14+ct.length);
+ o[0]=1;o[1]=z;o.set(iv,2);o.set(ct,14);return b64(o)}
+async function syUnpack(s){
+ const u=unb64(s);if(u[0]!==1)throw Error('Format data tidak dikenal');
+ let raw;try{raw=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:u.slice(2,14)},SY.keys.aes,u.slice(14)))}catch{throw Error('Data tidak bisa dibuka (kode salah atau data rusak)')}
+ if(u[1])raw=new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+ return JSON.parse(new TextDecoder().decode(raw))}
+async function syFetch(method,qs,body){
+ const r=await fetch(SYAPI+(qs||''),{method,headers:{'content-type':'application/json'},body:body?JSON.stringify(body):undefined});
+ let j={};try{j=await r.json()}catch{}
+ if(!r.ok){const e=Error((j.error&&j.error.message)||'Server '+r.status);e.status=r.status;throw e}
+ return j}
+function syPayload(){
+ const strip=c=>({...c,msgs:c.msgs.map(m=>m.img?{...m,img:null}:m)});
+ return{ver:1,t:Date.now(),chats:D.chats.filter(c=>!c.tmp).map(strip),proj:D.proj,arts:D.arts,snip:D.snip,prm:D.prm||[],stats:D.stats||{},tomb:D.tomb||{}}}
+function syMerge(r){
+ SY.merging=true;
+ try{
+  const old=Date.now()-90*864e5,tb={...(D.tomb||{})};
+  for(const[k,v]of Object.entries(r.tomb||{}))tb[k]=Math.max(tb[k]||0,v);
+  for(const k in tb)if(tb[k]<old)delete tb[k];
+  const mg=(loc,rem,pre)=>{
+   const m=new Map((loc||[]).map(x=>[x.id,x]));
+   for(const x of rem||[]){
+    if(!x||x.id==null)continue;const l=m.get(x.id);
+    if(!l||(x.t||0)>(l.t||0)){
+     if(l&&pre=='c')x.msgs.forEach((g,i)=>{const lm=l.msgs[i];if(lm&&lm.img&&lm.t==g.t&&!g.img)g.img=lm.img});
+     m.set(x.id,x)}}
+   return[...m.values()].filter(x=>!(tb[pre+x.id]>(x.t||x.id||0)))};
+  D.chats=mg(D.chats,r.chats,'c');D.proj=mg(D.proj,r.proj,'p');D.arts=mg(D.arts,r.arts,'a');D.snip=mg(D.snip,r.snip,'s');
+  const pm=new Map((D.prm||[]).map(p=>[p.n,p]));(r.prm||[]).forEach(p=>{if(p&&p.n&&!pm.has(p.n))pm.set(p.n,p)});D.prm=[...pm.values()];
+  D.stats=D.stats||{};for(const[k,v]of Object.entries(r.stats||{}))D.stats[k]=Math.max(D.stats[k]||0,v);
+  D.tomb=tb;if(D.act&&!D.proj.find(p=>p.id==D.act))D.act=null;
+  purge();save()}
+ finally{SY.merging=false}}
+function syRefresh(){
+ if(cur){const n=D.chats.find(c=>c.id==cur.id);if(n!==cur){cur=n||null;if(!busy){drawMsgs();drawTitle()}}}
+ side();drawSub(1)}
+function setSt(s){SY.st=s;if(PANE&&PANE.isConnected&&SECID=='sinkron')renderPane()}
+function schedSync(ms){if(!SY.on||SY.merging||!SY.keys)return;clearTimeout(SY.t);SY.t=setTimeout(syRun,ms||5000)}
+async function syRun(){
+ if(!SY.on||!SY.keys||SY.busy||!D)return;
+ if(busy){schedSync(3000);return}
+ SY.busy=true;setSt('Menyinkronkan...');
+ try{
+  let done=false;
+  for(let n=0;n<3&&!done;n++){
+   const g=await syFetch('GET','?id='+SY.keys.id);
+   if(g.v>0&&g.d)syMerge(await syUnpack(g.d));
+   const d=await syPack(syPayload());
+   if(d.length>SYMAX)throw Error('Data terlalu besar ('+Math.round(d.length/1024)+' KB). Hapus obrolan lama lalu coba lagi.');
+   try{const j=await syFetch('POST','',{id:SY.keys.id,ws:SY.keys.ws,d,v:g.v});SY.v=j.v;done=true}
+   catch(e){if(e.status!=409)throw e}}
+  if(!done)throw Error('Data berubah terus, coba lagi nanti');
+  SY.last=Date.now();W(syKey()+'_t',SY.last);setSt('');syRefresh()}
+ catch(e){setSt('Gagal: '+(e.message=='Failed to fetch'?'tidak ada koneksi':e.message))}
+ finally{SY.busy=false;if(PANE&&PANE.isConnected&&SECID=='sinkron')renderPane()}}
+function syInit(){
+ clearTimeout(SY.t);SY.on=false;SY.keys=null;SY.v=0;SY.st='';
+ const c=me&&L(syKey(),null);if(!c)return;SY.last=L(syKey()+'_t',0);
+ syDerive(c).then(k=>{SY.keys=k;SY.code=c;SY.on=true;schedSync(1500)}).catch(()=>{})}
+function syStop(){clearTimeout(SY.t);SY.on=false;SY.keys=null}
+async function syCheck(){SY.enabled=undefined;try{SY.enabled=!!(await syFetch('GET')).enabled}catch{SY.enabled=false}if(PANE&&PANE.isConnected&&SECID=='sinkron')renderPane()}
+async function syConnect(code,join){
+ if(!crypto.subtle)return toast('Peramban tidak mendukung enkripsi');
+ const n=normCode(code);if(n.length!=16)return toast('Kode harus 16 karakter');
+ setSt('Memeriksa kode...');
+ try{
+  const keys=await syDerive(n),g=await syFetch('GET','?id='+keys.id);
+  if(join&&!g.v){setSt('');return toast('Kode tidak ditemukan di server')}
+  if(!join&&g.v){setSt('');return toast('Kode sudah dipakai. Buat kode baru.')}
+  SY.keys=keys;SY.code=fmtCode(n);SY.on=true;W(syKey(),SY.code);W(syKey()+'_t',0);
+  toast(join?'Tersambung. Menarik data...':'Sinkron aktif');syRun()}
+ catch(e){setSt('Gagal: '+e.message)}}
+function syShowCode(code,isNew){
+ closeAll();
+ const o=modal(`<div class="mh">Kode sinkron<button class="ghost" data-x>Tutup</button></div><div class="mbd">
+ <div class="pvw" style="text-align:center;font:600 1.5em var(--cf);letter-spacing:.06em;padding:22px 10px;user-select:all">${esc(code)}</div>
+ <p class="hint">${isNew?'Simpan kode ini sekarang (catatan, pengelola kata sandi). Kode ini kunci enkripsi datamu. Tanpa kode ini, data di server tidak bisa dipulihkan siapa pun, termasuk aku.':'Masukkan kode ini di perangkat lain untuk menyambungkan datamu. Jangan bagikan ke orang lain.'}</p>
+ <div class="btns"><button class="ghost" data-a="cp">Salin kode</button>${isNew?'<button class="btn" data-a="go">Sudah kusimpan, mulai sinkron</button>':''}</div></div>`);
+ o.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;
+  if(b.dataset.a=='cp'){navigator.clipboard.writeText(code);flash(b,'✓ Tersalin')}
+  else if(b.dataset.a=='go'){closeOv(o);syConnect(code,false)}})}
+function syStatus(){return SY.busy?'Menyinkronkan...':SY.st?SY.st:SY.last?'Terakhir: '+fullT(SY.last):'Belum pernah'}
+SEC.sinkron=function(){
+ if(SY.enabled===null)syCheck();
+ let h=`<h3>Sinkron antar perangkat</h3><p class="hint">Obrolan, proyek, kode, dan artefak disalin ke server dalam bentuk terenkripsi (AES-256) di perangkatmu, jadi server tidak bisa membacanya. Kuncinya berasal dari kode sinkron. Kalau kode hilang, data di server tidak bisa dipulihkan. Gambar, pengaturan, dan PIN tidak ikut disinkronkan.</p>`;
+ if(SY.enabled===false)h+='<div class="pvw"><b>Server belum siap.</b><div class="hint">Tambahkan database Upstash Redis di Vercel (Storage), pasang file api/sync.js, lalu deploy ulang.</div></div>';
+ if(!SY.on)h+=`<div class="btns">${BTN('sy-new','Buat kode sinkron baru')}</div>
+  <div class="grp"><div class="fr col"><div>Sudah punya kode?<div class="hint">Masukkan kode dari perangkat lain</div></div><div class="ctl"><input id="syc" placeholder="XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" style="font-family:var(--cf);text-transform:uppercase"><button class="btn sm" data-do="sy-join">Sambungkan</button></div></div></div>
+  ${SY.st?`<div class="hint">${esc(SY.st)}</div>`:''}`;
+ else h+=`<div class="grp">${fr('Status',esc(syStatus()),'<span class="tag">☁ terhubung</span>')}${fr('Kode sinkron','Simpan di tempat aman',`<span class="tag" style="font-family:var(--cf)">${esc(SY.code.slice(0,4)+'-••••-••••-'+SY.code.slice(-4))}</span>`)}</div>
+  <div class="btns">${BTN('sy-now','Sinkronkan sekarang')}${BTN('sy-code','Lihat / salin kode')}${BTN('sy-off','Putuskan perangkat ini')}${BTN('sy-wipe','Hapus data di server','danger')}</div>`;
+ return h};
+SECS.splice(SECS.findIndex(s=>s[0]=='data')+1,0,['sinkron','☁','Sinkron']);
+async function syAct(d,el,root){
+ if(d=='sy-new')syShowCode(genCode(),true);
+ else if(d=='sy-join')syConnect(root.querySelector('#syc').value,true);
+ else if(d=='sy-now')syRun();
+ else if(d=='sy-code')syShowCode(SY.code,false);
+ else if(d=='sy-off'){if(!confirm('Putuskan sinkron di perangkat ini? Data di perangkat ini tetap ada.'))return;try{localStorage.removeItem(syKey());localStorage.removeItem(syKey()+'_t')}catch{}syStop();SY.st='';renderPane()}
+ else if(d=='sy-wipe'){if(!confirm('Hapus data sinkron di server? Perangkat lain tidak akan bisa menarik data lagi. Data di perangkat ini tidak berubah.'))return;
+  try{await syFetch('DELETE','',{id:SY.keys.id,ws:SY.keys.ws});try{localStorage.removeItem(syKey());localStorage.removeItem(syKey()+'_t')}catch{}syStop();SY.st='';toast('Data di server dihapus');renderPane()}catch(e){toast('Gagal: '+e.message)}}}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&SY.on&&Date.now()-SY.last>30000)schedSync(800)});
+addEventListener('online',()=>schedSync(800));
+
 boot();
 </script></body></html>
