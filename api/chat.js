@@ -25,6 +25,47 @@ function pickModel(m) {
   return MAP[m] || DEFAULT_GW_MODEL; // dropdown lama / "auto" / tidak dikenal -> default
 }
 
+
+// --- Pro: verifikasi token lisensi (PRO_SECRET). Bila PRO_SECRET kosong, sistem Pro nonaktif dan semua fitur terbuka. ---
+const PRO_SECRET = (process.env.PRO_SECRET || '').trim();
+const _enc = new TextEncoder();
+const _unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+async function isPro(req) {
+  if (!PRO_SECRET) return true;
+  const t = req.headers.get('x-license') || '';
+  const [body, sig] = t.split('.');
+  if (!body || !sig) return false;
+  try {
+    const k = await crypto.subtle.importKey('raw', _enc.encode(PRO_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
+    if (!(await crypto.subtle.verify('HMAC', k, _unb64u(sig), _enc.encode(body)))) return false;
+    const p = JSON.parse(new TextDecoder().decode(_unb64u(body)));
+    return p.p === 'pro' && p.e > Date.now();
+  } catch { return false; }
+}
+const PRO_ERR = { error: { message: 'Fitur ini khusus Pro. Buka menu Atur > Langganan untuk upgrade.', code: 'pro_required' } };
+
+const PRO_MODELS = new Set((process.env.PRO_MODELS || 'claude-opus-5-5,claude-sonnet-5-5,gpt-5.6,gpt-5.6-luna,kimi-k3').split(',').map(s => s.trim()).filter(Boolean));
+
+const KV_URL = (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '').trim().replace(/\/+$/, '');
+const KV_TOKEN = (process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '').trim();
+const FREE_DAILY = +process.env.FREE_DAILY_SERVER || 60; // batas cadangan per IP/hari untuk paket Gratis (lebih longgar dari batas di aplikasi)
+async function kvCmd(cmd) {
+  const r = await fetch(KV_URL, { method: 'POST', headers: { authorization: 'Bearer ' + KV_TOKEN, 'content-type': 'application/json' }, body: JSON.stringify(cmd) });
+  if (!r.ok) throw new Error('kv');
+  return (await r.json()).result;
+}
+async function overQuota(req, ip) {
+  if (!PRO_SECRET || !KV_URL || !KV_TOKEN || (await isPro(req))) return false;
+  try {
+    const day = new Date(Date.now() + 7 * 36e5).toISOString().slice(0, 10);
+    const h = new Uint8Array(await crypto.subtle.digest('SHA-256', _enc.encode(ip)));
+    const k = 'auralis:q:' + day + ':' + [...h.slice(0, 10)].map(x => x.toString(16).padStart(2, '0')).join('');
+    const n = await kvCmd(['INCR', k]);
+    if (n === 1) await kvCmd(['EXPIRE', k, 172800]);
+    return n > FREE_DAILY;
+  } catch { return false; }
+}
+
 const hits = new Map();
 function limited(ip) {
   const now = Date.now(), LIM = +process.env.RATE_LIMIT || 30, WIN = 10 * 60e3;
@@ -85,7 +126,7 @@ export default async function handler(req) {
   const ok = !origin || origin === own || allow.includes(origin);
   const cors = {
     'access-control-allow-origin': ok && origin ? origin : own,
-    'access-control-allow-headers': 'content-type',
+    'access-control-allow-headers': 'content-type,x-license',
     'access-control-allow-methods': 'GET,POST,OPTIONS',
     vary: 'origin',
   };
@@ -138,6 +179,9 @@ export default async function handler(req) {
   const body = an ? toOpenAI(b) : { ...b, stream: true };
   if (body.max_tokens) body.max_tokens = Math.min(+body.max_tokens || 4096, 4096);
   body.model = pickModel(b.model);
+  if (PRO_MODELS.has(body.model) && !(await isPro(req))) return J({ error: { message: 'Model ini khusus Pro. Buka menu Atur > Langganan untuk upgrade.', code: 'pro_required' } }, 402);
+
+  if (await overQuota(req, ip)) return J({ error: { message: 'Batas harian paket Gratis tercapai. Upgrade ke Pro untuk tanpa batas.', code: 'quota' } }, 429);
 
   let r;
   try {
