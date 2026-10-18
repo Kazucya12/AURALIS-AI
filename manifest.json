@@ -1,1 +1,19 @@
-{"name":"Auralis AI","short_name":"Auralis","start_url":".","display":"standalone","background_color":"#0e0c1d","theme_color":"#0e0c1d","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{
+  "name": "Auralis AI",
+  "short_name": "Auralis",
+  "description": "Asisten AI pribadi untuk kode, tulisan, dan analisis.",
+  "lang": "id",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b161c",
+  "theme_color": "#0b161c",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Obrolan baru", "url": "/?new=1", "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }] }
+  ]
+}
