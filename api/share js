@@ -1,0 +1,98 @@
+// Vercel Edge Function: berbagi obrolan lewat tautan baca-saja. Letakkan sebagai api/share.js
+// Env: KV_REST_API_URL + KV_REST_API_TOKEN (Upstash). Opsional: SHARE_DAYS (masa aktif tautan, bawaan 90), SHARE_MAX_BYTES (bawaan 250000),
+//      PRO_SECRET (bila diisi, membuat tautan khusus Pro), ALLOWED_ORIGINS.
+export const config = { runtime: 'edge' };
+
+const KV_URL = (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '').trim().replace(/\/+$/, '');
+const KV_TOKEN = (process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '').trim();
+const DAYS = Math.min(Math.max(+process.env.SHARE_DAYS || 90, 1), 365);
+const MAX = +process.env.SHARE_MAX_BYTES || 250000;
+const B32 = 'abcdefghijklmnopqrstuvwxyz234567';
+const HEX = /^[0-9a-f]{64}$/;
+
+async function kv(cmd) {
+  const r = await fetch(KV_URL, { method: 'POST', headers: { authorization: 'Bearer ' + KV_TOKEN, 'content-type': 'application/json' }, body: JSON.stringify(cmd) });
+  if (!r.ok) throw new Error('kv ' + r.status);
+  return (await r.json()).result;
+}
+async function sha256(s) { return [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(x => x.toString(16).padStart(2, '0')).join(''); }
+
+// --- Pro: verifikasi token lisensi (PRO_SECRET). Bila PRO_SECRET kosong, semua fitur terbuka. ---
+const PRO_SECRET = (process.env.PRO_SECRET || '').trim();
+const _enc = new TextEncoder();
+const _unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+async function isPro(req) {
+  if (!PRO_SECRET) return true;
+  const [body, sig] = (req.headers.get('x-license') || '').split('.');
+  if (!body || !sig) return false;
+  try {
+    const k = await crypto.subtle.importKey('raw', _enc.encode(PRO_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
+    if (!(await crypto.subtle.verify('HMAC', k, _unb64u(sig), _enc.encode(body)))) return false;
+    const p = JSON.parse(new TextDecoder().decode(_unb64u(body)));
+    return p.p === 'pro' && p.e > Date.now();
+  } catch { return false; }
+}
+
+const hits = new Map();
+function limited(ip) {
+  const now = Date.now(), WIN = 10 * 60e3, a = (hits.get(ip) || []).filter(t => now - t < WIN);
+  if (a.length >= 20) return true;
+  a.push(now); hits.set(ip, a); return false;
+}
+
+export default async function handler(req) {
+  const origin = req.headers.get('origin') || '', own = new URL(req.url).origin;
+  const allow = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+  const ok = !origin || origin === own || allow.includes(origin);
+  const cors = { 'access-control-allow-origin': ok && origin ? origin : own, 'access-control-allow-headers': 'content-type,x-license', 'access-control-allow-methods': 'GET,POST,DELETE,OPTIONS', vary: 'origin' };
+  const J = (o, st = 200) => new Response(JSON.stringify(o), { status: st, headers: { ...cors, 'content-type': 'application/json', 'cache-control': 'no-store' } });
+  const E = (m, st, code) => J({ error: { message: m, code } }, st);
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+  if (!ok) return E('Origin tidak diizinkan', 403);
+
+  const enabled = !!(KV_URL && KV_TOKEN), u = new URL(req.url), id = u.searchParams.get('id');
+  if (req.method === 'GET' && !id) return J({ enabled, days: DAYS });
+  if (!enabled) return E('Berbagi tautan belum diatur di server', 503);
+  const ip = (req.headers.get('x-forwarded-for') || 'x').split(',')[0].trim();
+  if (limited(ip)) return E('Terlalu banyak permintaan. Coba lagi beberapa menit lagi.', 429);
+
+  try {
+    if (req.method === 'GET') {
+      if (!/^[a-z2-7]{12}$/.test(id)) return E('Tautan tidak valid', 400);
+      const raw = await kv(['GET', 'auralis:share:' + id]);
+      if (!raw) return E('Tautan tidak ditemukan atau sudah kedaluwarsa', 404);
+      const r = JSON.parse(raw);
+      return J({ title: r.title, msgs: r.msgs, ts: r.ts, exp: r.exp });
+    }
+    if (+req.headers.get('content-length') > MAX + 4000) return E('Obrolan terlalu besar untuk dibagikan', 413);
+    let b; try { b = await req.json(); } catch { return E('Body tidak valid', 400); }
+
+    if (req.method === 'DELETE') {
+      if (!b || !/^[a-z2-7]{12}$/.test(b.id) || !HEX.test(b.ws)) return E('Permintaan tidak valid', 400);
+      const raw = await kv(['GET', 'auralis:share:' + b.id]);
+      if (!raw) return J({ ok: true });
+      if (JSON.parse(raw).wh !== await sha256(b.ws)) return E('Kunci hapus salah', 403);
+      await kv(['DEL', 'auralis:share:' + b.id]);
+      return J({ ok: true });
+    }
+    if (req.method !== 'POST') return E('Method tidak didukung', 405);
+    if (!(await isPro(req))) return E('Berbagi lewat tautan khusus Pro. Buka menu Atur > Langganan untuk upgrade.', 402, 'pro_required');
+    if (!b || typeof b.title !== 'string' || !Array.isArray(b.msgs) || !HEX.test(b.ws)) return E('Permintaan tidak valid', 400);
+    const msgs = b.msgs.slice(0, 400).filter(m => m && (m.r === 'user' || m.r === 'assistant') && typeof m.c === 'string').map(m => {
+      const o = { r: m.r, c: m.c.slice(0, 50000) };
+      if (Number.isFinite(m.t)) o.t = m.t;
+      if (typeof m.n === 'string') o.n = m.n.slice(0, 40);
+      if (Array.isArray(m.src)) o.src = m.src.slice(0, 5).filter(x => x && /^https?:\/\//i.test(x.u)).map(x => ({ t: String(x.t || '').slice(0, 120), u: String(x.u).slice(0, 500) }));
+      return o;
+    });
+    if (!msgs.length) return E('Tidak ada pesan untuk dibagikan', 400);
+    const rec = { title: b.title.slice(0, 80) || 'Obrolan', msgs, ts: Date.now(), exp: Date.now() + DAYS * 864e5, wh: await sha256(b.ws) };
+    const val = JSON.stringify(rec);
+    if (val.length > MAX) return E('Obrolan terlalu besar untuk dibagikan', 413);
+    const r = crypto.getRandomValues(new Uint8Array(12)), nid = [...r].map(x => B32[x % 32]).join('');
+    await kv(['SET', 'auralis:share:' + nid, val, 'EX', DAYS * 86400]);
+    return J({ id: nid, exp: rec.exp });
+  } catch {
+    return E('Penyimpanan tidak bisa dihubungi', 502);
+  }
+}
