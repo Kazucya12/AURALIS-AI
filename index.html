@@ -270,6 +270,35 @@ a.cite{display:inline-block;min-width:1.35em;text-align:center;font-size:.7em;li
 .ed{width:100%;min-height:44px;background:var(--bg);border:1px solid var(--ac);border-radius:10px;padding:8px 10px;resize:none;display:block;min-width:min(70vw,420px)}.edb{display:flex;gap:6px;justify-content:flex-end;margin-top:6px}.edb button{padding:4px 12px;border-radius:8px;border:1px solid var(--bd);font-size:.82em;color:var(--mu)}.edb button[data-e=ok]{background:var(--ac);border-color:var(--ac);color:var(--onac);font-weight:700}
 #offb{display:none;position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:60;background:var(--s2);border:1px solid var(--bd);color:var(--mu);font-size:.78em;padding:4px 14px;border-radius:99px}body.off #offb{display:block}
 #sv{position:fixed;inset:0;overflow:auto;background:var(--bg);color:var(--tx);padding:0 16px 56px;z-index:400}#sv .svh{max-width:var(--mw);margin:0 auto;display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid var(--bd);margin-bottom:24px}#sv .svh .logo{margin:0}.svt{font-family:var(--rf);font-weight:500;font-size:1.9em;line-height:1.15;letter-spacing:-.02em;margin:0 0 6px}#sv .m{animation:none}#sv .code button[data-pv],#sv .code button[data-sv]{display:none}#sv .who{margin-bottom:3px}
+
+/* ===== pemilih model + slider upaya ===== */
+#model{display:none}
+.cbox{flex-direction:column;align-items:stretch;gap:2px}
+.cbox textarea{padding:9px 10px 4px}
+.crow{display:flex;align-items:center;gap:4px}
+.mp{margin-left:auto;display:flex;align-items:center;gap:7px;padding:7px 11px;border-radius:12px;background:var(--s2);color:var(--mu);font-size:.82em;max-width:62%;transition:background-color .2s,color .2s}
+.mp:hover,.mp[aria-expanded=true]{color:var(--tx)}
+.mp b{font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.mp span{color:var(--ac2);white-space:nowrap}.mp i{font-style:normal;opacity:.7;transition:transform .2s}.mp[aria-expanded=true] i{transform:rotate(180deg)}
+.mpop{position:absolute;right:16px;bottom:calc(100% - 4px);width:min(340px,calc(100% - 32px));max-height:min(70vh,520px);overflow:auto;background:var(--s1);border:1px solid var(--bd);border-radius:18px;padding:14px;box-shadow:0 18px 50px rgba(0,0,0,.45);z-index:30;transform-origin:bottom right;animation:mpin .16s ease-out}
+@keyframes mpin{from{opacity:0;transform:translateY(6px) scale(.97)}}
+.mpop h4{margin:0 0 2px;font:600 .72em/1 inherit;letter-spacing:.09em;text-transform:uppercase;color:var(--mu)}
+.eff{background:var(--s2);border-radius:14px;padding:12px 14px 14px;margin-bottom:12px}
+.eft{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.eft b{display:block;font:500 1.15em/1.2 var(--fs,inherit);color:var(--ac2)}.eft small{display:block;color:var(--mu);margin-top:3px;font-size:.78em}
+.eft button{color:var(--mu);width:30px;height:30px;border-radius:9px;font-size:1.05em}.eft button:hover{color:var(--tx);background:var(--bd)}
+.rng{--p:33%;-webkit-appearance:none;appearance:none;display:block;box-sizing:border-box;max-width:none!important;width:100%!important;padding:0!important;border:0!important;height:30px;margin:8px 0 0;background:transparent;cursor:pointer}
+.rng::-webkit-slider-runnable-track{height:12px;border-radius:99px;background:linear-gradient(90deg,var(--ac) var(--p),var(--bd) var(--p))}
+.rng::-moz-range-track{height:12px;border-radius:99px;background:var(--bd)}.rng::-moz-range-progress{height:12px;border-radius:99px;background:var(--ac)}
+.rng::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;margin-top:-7px;border-radius:50%;background:#fff;border:0;box-shadow:0 2px 10px rgba(0,0,0,.45)}
+.rng::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:#fff;border:0;box-shadow:0 2px 10px rgba(0,0,0,.45)}
+.rng:focus-visible{outline:2px solid var(--ac);outline-offset:3px;border-radius:99px}
+.ticks{display:flex;justify-content:space-between;font-size:.7em;color:var(--mu);margin-top:2px;padding:0 2px}.ticks span.on{color:var(--tx)}
+.mlist{display:flex;flex-direction:column;gap:1px;margin-top:8px}
+.mlist button{display:flex;align-items:center;gap:8px;text-align:left;padding:9px 10px;border-radius:10px;color:var(--tx)}
+.mlist button:hover{background:var(--s2)}.mlist button.on{background:var(--s2)}.mlist button .nm{flex:1;min-width:0}
+.mlist button em{font-style:normal;font-size:.7em;color:var(--ac2);border:1px solid var(--bd);border-radius:99px;padding:1px 7px}.mlist button .ck{width:16px;color:var(--ac2)}
+@media(max-width:620px){.mp{max-width:68%;padding:7px 9px;gap:5px}.mp b{max-width:9em}}
 </style></head><body>
 
 <div id="auth"><div class="orb o1"></div><div class="orb o2"></div>
@@ -304,10 +333,11 @@ a.cite{display:inline-block;min-width:1.35em;text-align:center;font-size:.7em;li
 <div id="sub" class="hide"></div>
 <div id="msgs"><div class="w" id="w"></div></div>
 <button id="down" class="hide" title="Ke pesan terbaru">↓</button>
-<div class="comp"><div id="slash" class="hide"></div><div id="att" class="hide"></div><div class="cbox">
-<button class="ib" id="att0" title="Lampirkan">📎</button><input type="file" id="fi" class="hide" multiple accept="image/*,.pdf,.docx,.xlsx,.xls,.pptx,.csv,.txt,.md,.js,.json,.py,.html,.css,.lua,.ts,.sql"><button class="ib" id="mic" title="Suara">🎤</button><button class="ib" id="web" title="Cari di web" aria-label="Pencarian web">🌐</button>
+<div class="comp"><div id="mpop" class="mpop hide" role="dialog" aria-label="Model dan upaya AI"></div><div id="slash" class="hide"></div><div id="att" class="hide"></div><div class="cbox">
 <textarea id="in" rows="1" placeholder="Tulis pesan... (ketik / untuk prompt cepat)"></textarea>
-<button class="ib send" id="go">➤</button></div></div>
+<div class="crow"><button class="ib" id="att0" title="Lampirkan">📎</button><input type="file" id="fi" class="hide" multiple accept="image/*,.pdf,.docx,.xlsx,.xls,.pptx,.csv,.txt,.md,.js,.json,.py,.html,.css,.lua,.ts,.sql"><button class="ib" id="mic" title="Suara">🎤</button><button class="ib" id="web" title="Cari di web" aria-label="Pencarian web">🌐</button>
+<button class="mp" id="mp" aria-haspopup="dialog" aria-expanded="false" title="Model dan upaya AI"><b id="mpm">Model</b><span id="mpe">Sedang</span><i>⌄</i></button>
+<button class="ib send" id="go">➤</button></div></div></div>
 </section></div>
 <div id="offb">Offline. Obrolan lama tetap bisa dibaca.</div><div id="toast"></div>
 
@@ -329,7 +359,7 @@ write:['Tulis','Kamu penulis profesional. Sesuaikan nada dan gaya dengan permint
 analyze:['Analisis','Kamu analis tajam. Pecah masalah menjadi langkah, bandingkan opsi dengan kelebihan dan kekurangannya (tabel bila cocok), akhiri dengan kesimpulan dan rekomendasi yang jelas.']};
 const ARTI='\nJika pengguna meminta halaman web, aplikasi mini, tampilan UI, animasi, atau diagram visual, tulis SATU file HTML lengkap (CSS dan JS inline, tanpa file eksternal) dalam satu blok ```html agar bisa dipratinjau sebagai artefak. Untuk gambar vektor gunakan blok ```svg. Jangan memotong kode.';
 const DEF={theme:'dark',acc:'lamp',font:15,lh:1.55,ff:'hyper',rf:'serif',v3:1,amem:true,cf:'jb',dens:'normal',anim:'full',bg:true,enter:true,
-temp:.7,sys:'',persona:'default',mem:'',smem:true,art:true,model:'glm-5.3',lim:50,
+temp:.7,eff:1,sys:'',persona:'default',mem:'',smem:true,art:true,model:'glm-5.3',lim:50,
 voice:'',rate:1,pitch:1,tvol:1,auto:false,lang:'id-ID',vauto:false,
 snd:true,sndk:'lembut',vol:60,sndSend:false,vib:true,nt:false,qh:false,qf:'22:00',qt:'07:00',
 tz:'auto',h24:true,ts:true,dsep:true,clk:false,inj:true,
@@ -468,8 +498,8 @@ function boot(){
 function purge(){if(S().del){const lim=Date.now()-S().del*864e5;D.chats=D.chats.filter(c=>c.pin||c.t>lim)}}
 function fillModels(){if(!D)return;const s=S(),ok=m=>AV[m.p];let cm=MODELS.find(m=>m.id==s.model&&ok(m));if(!cm){cm=MODELS.find(ok);if(cm)s.model=cm.id}
  $('#model').innerHTML=Object.keys(PROV).map(p=>`<optgroup label="${PROV[p][0]}">`+MODELS.filter(m=>m.p==p).map(m=>`<option value="${m.id}" ${AV[p]?'':'disabled'}>${m.n}${AV[p]?'':' (tidak tersedia)'}${PROM.has(m.id)&&!isPro()?' · Pro':''}</option>`).join('')+'</optgroup>').join('');
- $('#model').value=s.model}
-$('#model').onchange=()=>{if(PROM.has($('#model').value)&&!isPro()){$('#model').value=S().model;return proView('model')}S().model=$('#model').value;save();toast('Model: '+MODELS.find(m=>m.id==S().model).n)};
+ $('#model').value=s.model;if(typeof mpUI=='function')mpUI()}
+$('#model').onchange=()=>{if(PROM.has($('#model').value)&&!isPro()){$('#model').value=S().model;return proView('model')}S().model=$('#model').value;save();if(typeof mpUI=='function')mpUI();toast('Model: '+MODELS.find(m=>m.id==S().model).n)};
 function skin(){
  const s=S(),R=document.documentElement,t=s.theme=='auto'?(matchMedia('(prefers-color-scheme:light)').matches?'light':'dark'):s.theme;
  R.dataset.t=t;R.dataset.acc=s.acc;R.dataset.d=s.dens;R.dataset.rf=s.rf=='ui'?'ui':'serif';
@@ -668,7 +698,7 @@ const guessTitle=(c,l)=>{const m=c.match(/<title>([^<]{1,50})<\/title>/i);return
 /* ===== AI ===== */
 function projCtx(){const p=cur&&cur.pid&&D.proj.find(x=>x.id==cur.pid);if(!p)return'';let k='';(p.know||[]).forEach(f=>{k+='\n--- '+f.n+' ---\n'+f.t});return '\n\n[Proyek: '+p.name+']'+(p.ins?'\nInstruksi proyek: '+p.ins:'')+(k?'\nPengetahuan proyek:'+k.slice(0,14000):'')}
 async function ask(onTok,extra,mo){
- const s=S(),sys=MODES[cur.mode][1]+(s.art?ARTI:'')+(PER[s.persona]&&PER[s.persona][1]?'\n'+PER[s.persona][1]:'')+(s.mem&&s.smem?'\nInfo tentang pengguna: '+s.mem:'')+(s.smem&&D.mems&&D.mems.length?'\nMemori tentang pengguna (pakai bila relevan, jangan menyebut bahwa ini berasal dari memori):'+memText():'')+(s.sys?'\n'+s.sys:'')+(s.inj?'\nWaktu sekarang: '+nowStr()+'.':'')+projCtx()+(extra||''),ms=cur.msgs.slice(-20);
+ const s=S(),ef=effCfg(),sys=MODES[cur.mode][1]+(s.art?ARTI:'')+(PER[s.persona]&&PER[s.persona][1]?'\n'+PER[s.persona][1]:'')+(s.mem&&s.smem?'\nInfo tentang pengguna: '+s.mem:'')+(s.smem&&D.mems&&D.mems.length?'\nMemori tentang pengguna (pakai bila relevan, jangan menyebut bahwa ini berasal dari memori):'+memText():'')+(s.sys?'\n'+s.sys:'')+(ef.sys?'\n'+ef.sys:'')+(s.inj?'\nWaktu sekarang: '+nowStr()+'.':'')+projCtx()+(extra||''),ms=cur.msgs.slice(-20);
  let vi=-1;ms.forEach((m,i)=>{if(m.img)vi=i});
  let m=MODELS.find(x=>x.id==(mo||s.model))||MODELS[0];
  if(PROM.has(m.id)&&!isPro()){m=MODELS.find(x=>x.id==DEF.model)||MODELS[0];toast('Model Pro tidak tersedia di paket Gratis. Memakai '+m.n)}
@@ -679,6 +709,7 @@ async function ask(onTok,extra,mo){
  const h=ms.map((x,i)=>({role:x.r,content:x.img?(i==vi?[{type:'text',text:full(x,i)},part(x.img)]:full(x,i)+' [gambar]'):full(x,i)}));
  const body={model:m.id,stream:true};
  if(!m.nt)body.temperature=s.temp;
+ if(ef.re&&!m.nt)body.reasoning_effort=ef.re;if(ef.mt&&!m.nt)body.max_tokens=ef.mt;
  body.messages=[{role:'system',content:sys},...h];
  const r=await fetch(API,{method:'POST',signal:ctl.signal,headers:{'content-type':'application/json',...LH()},body:JSON.stringify({p:m.p,body})});
  if(r.status==402)proView('model');
@@ -1421,7 +1452,7 @@ function meterUI(warn){
 $('#meter').onclick=()=>proView('msgs');
 $('#upg').onclick=()=>proView();
 
-const WHY={msgs:['Batas harian paket Gratis tercapai','Kamu sudah memakai '+FREE.msgs+' pesan hari ini. Pro membuka obrolan tanpa batas.'],model:['Model ini khusus Pro','Claude, GPT, dan Kimi tersedia di Pro.'],web:['Pencarian web khusus Pro','Jawaban dengan sumber terbaru dari internet.'],atts:['Lampiran lebih banyak khusus Pro','Paket Gratis memuat '+FREE.atts+' lampiran sekaligus, Pro sampai 5.'],sync:['Sinkron antar perangkat khusus Pro','Obrolanmu terenkripsi dan sama di semua perangkat.'],art:['Berkas tambahan dan riwayat artefak khusus Pro','Pisahkan CSS dan JS, lalu pulihkan versi lama.'],link:['Tautan berbagi khusus Pro','Bagikan obrolan sebagai halaman baca-saja.']};
+const WHY={msgs:['Batas harian paket Gratis tercapai','Kamu sudah memakai '+FREE.msgs+' pesan hari ini. Pro membuka obrolan tanpa batas.'],model:['Model ini khusus Pro','Claude, GPT, dan Kimi tersedia di Pro.'],upaya:['Upaya Tinggi khusus Pro','Upaya Tinggi dan Sangat Tinggi membuat AI berpikir lebih teliti dan lebih dalam.'],web:['Pencarian web khusus Pro','Jawaban dengan sumber terbaru dari internet.'],atts:['Lampiran lebih banyak khusus Pro','Paket Gratis memuat '+FREE.atts+' lampiran sekaligus, Pro sampai 5.'],sync:['Sinkron antar perangkat khusus Pro','Obrolanmu terenkripsi dan sama di semua perangkat.'],art:['Berkas tambahan dan riwayat artefak khusus Pro','Pisahkan CSS dan JS, lalu pulihkan versi lama.'],link:['Tautan berbagi khusus Pro','Bagikan obrolan sebagai halaman baca-saja.']};
 function proBody(why){
  if(!PRO.on)return '<h3>Langganan</h3><p class="hint">Sistem langganan belum diaktifkan di server ini, jadi semua fitur terbuka. Pemilik aplikasi bisa mengaktifkannya lewat api/pro.js.</p>';
  const pro=isPro(),w=WHY[why];
@@ -1677,6 +1708,37 @@ function payResume(){
  if(q)history.replaceState(null,'',location.pathname+location.hash);
  if(order&&PRO.auto&&!isPro()){W('ap_ord',{o:order,t:o&&o.o==order?o.t:Date.now()});payCheck(order).then(d=>{if(!d)payPoll(order)})}}
 document.addEventListener('visibilitychange',()=>{const o=L('ap_ord',null);if(!document.hidden&&o&&!isPro())payCheck(o.o)});
+
+/* ===== upaya AI (slider) + pemilih model di kotak pesan ===== */
+const EFF=[
+ {n:'Rendah',d:'Cepat dan hemat token',re:'low',mt:2500,sys:'Jawab singkat, padat, dan langsung ke inti tanpa basa-basi.'},
+ {n:'Sedang',d:'Seimbang, cocok untuk kebanyakan pertanyaan'},
+ {n:'Tinggi',d:'Lebih teliti, memakai lebih banyak token',re:'high',sys:'Pikirkan masalah dengan teliti dan periksa ulang jawabanmu sebelum menjawab.',pro:1},
+ {n:'Sangat Tinggi',d:'Analisis paling dalam, paling boros token',re:'high',mt:8000,sys:'Lakukan analisis mendalam: pertimbangkan beberapa pendekatan, verifikasi setiap langkah, antisipasi kasus tepi, lalu beri jawaban yang lengkap dan rinci.',pro:1}];
+const EDEF=1;
+function effLv(){const v=D&&S().eff;let i=Number.isInteger(v)?v:EDEF;if(i<0||i>=EFF.length)i=EDEF;if(EFF[i].pro&&!isPro())i=EDEF;return i}
+function effCfg(){return EFF[effLv()]}
+const mShort=m=>m.n.replace(/\s*\(.*\)$/,'');
+function mpUI(){
+ if(!D)return;const m=MODELS.find(x=>x.id==S().model)||MODELS[0],e=EFF[effLv()];
+ const b=$('#mpm'),s=$('#mpe');if(b)b.textContent=mShort(m);if(s)s.textContent=e.n}
+function mpDraw(){
+ const pop=$('#mpop');if(!pop||pop.classList.contains('hide'))return;
+ const lv=EFF.findIndex((x,i)=>i==effLv()),e=EFF[lv],cur0=S().model,pro=isPro();
+ const pct=Math.round(lv/(EFF.length-1)*100);
+ pop.innerHTML=`<div class="eff"><div class="eft"><div><h4>Upaya</h4><b id="efn">${e.n}</b><small id="efd">${e.d}</small></div><button id="efr" title="Reset ke default" aria-label="Reset ke default">↺</button></div>
+ <input class="rng" id="efs" type="range" min="0" max="${EFF.length-1}" step="1" value="${lv}" style="--p:${pct}%" aria-label="Upaya AI" aria-valuetext="${e.n}">
+ <div class="ticks">${EFF.map((x,i)=>`<span class="${i==lv?'on':''}">${x.pro&&!pro?'🔒 ':''}${x.n.replace('Sangat Tinggi','Maks')}</span>`).join('')}</div></div>
+ <h4>Model</h4><div class="mlist">${MODELS.filter(m=>AV[m.p]).map(m=>`<button data-m="${m.id}" class="${m.id==cur0?'on':''}"><span class="ck">${m.id==cur0?'✓':''}</span><span class="nm">${esc(mShort(m))}</span>${PROM.has(m.id)&&!pro?'<em>Pro</em>':''}</button>`).join('')}</div>`;
+ const rg=$('#efs');
+ rg.oninput=()=>{const i=+rg.value;rg.style.setProperty('--p',Math.round(i/(EFF.length-1)*100)+'%');$('#efn').textContent=EFF[i].n;$('#efd').textContent=EFF[i].d;rg.setAttribute('aria-valuetext',EFF[i].n)};
+ rg.onchange=()=>{const i=+rg.value;if(EFF[i].pro&&!isPro()){S().eff=EDEF;save();mpUI();closeMp();return proView('upaya')}S().eff=i;save();mpUI();mpDraw()};
+ $('#efr').onclick=()=>{S().eff=EDEF;save();mpUI();mpDraw()};
+ pop.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{const id=b.dataset.m;if(PROM.has(id)&&!isPro()){closeMp();return proView('model')}S().model=id;save();const sel=$('#model');if(sel)sel.value=id;mpUI();mpDraw();toast('Model: '+mShort(MODELS.find(m=>m.id==id)))})}
+function openMp(){const pop=$('#mpop');pop.classList.remove('hide');$('#mp').setAttribute('aria-expanded','true');mpDraw()}
+function closeMp(){const pop=$('#mpop');if(!pop)return;pop.classList.add('hide');const b=$('#mp');if(b)b.setAttribute('aria-expanded','false')}
+document.addEventListener('click',e=>{const t=e.target;if(!t.isConnected)return;if(t.closest&&t.closest('#mp')){const o=!$('#mpop').classList.contains('hide');o?closeMp():openMp();return}if(!(t.closest&&t.closest('#mpop')))closeMp()});
+document.addEventListener('keydown',e=>{if(e.key=='Escape')closeMp()});
 
 boot();
 </script></body></html>
