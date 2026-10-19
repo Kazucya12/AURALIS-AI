@@ -20,9 +20,23 @@ const MAP = {
 };
 const GW_IDS = new Set([...Object.values(MAP), ...EXTRA]);
 
-function pickModel(m) {
-  if (GW_IDS.has(m)) return m;      // ID Dattio langsung
-  return MAP[m] || DEFAULT_GW_MODEL; // dropdown lama / "auto" / tidak dikenal -> default
+// Daftar model asli dari gateway (di-cache 10 menit), supaya model baru (mis. GPT Argon) langsung bisa dipakai tanpa ubah kode
+let MC = { t: 0, ids: [] };
+async function gwModels(gwKey) {
+  if (Date.now() - MC.t < 6e5 && MC.ids.length) return MC.ids;
+  try {
+    const r = await fetch(GW_URL.replace(/\/chat\/completions$/, '') + '/models', { headers: { authorization: 'Bearer ' + gwKey } });
+    const j = await r.json();
+    const ids = (j.data || j.models || []).map(x => (typeof x === 'string' ? x : x && x.id)).filter(x => typeof x === 'string' && x.length < 80);
+    if (ids.length) MC = { t: Date.now(), ids };
+  } catch {}
+  return MC.ids;
+}
+async function pickModel(m, gwKey) {
+  if (GW_IDS.has(m)) return { id: m, dyn: false };      // ID Dattio langsung
+  if (MAP[m]) return { id: MAP[m], dyn: false };
+  if (typeof m === 'string' && m && (await gwModels(gwKey)).includes(m)) return { id: m, dyn: true }; // model baru dari gateway
+  return { id: DEFAULT_GW_MODEL, dyn: false };           // "auto" / tidak dikenal -> default
 }
 
 
@@ -161,6 +175,9 @@ export default async function handler(req) {
       } catch (e) { out.test_error = String(e); }
       return J(out);
     }
+    if (u.searchParams.get('models') === '1') {
+      return J({ models: gwKey ? await gwModels(gwKey) : [] });
+    }
     // Status ketersediaan: semua penyedia aktif selama key gateway ada
     const names = ['qwen', 'anthropic', 'openai', 'gemini', 'deepseek', 'groq', 'mistral', 'xai', 'openrouter'];
     return J(Object.fromEntries(names.map(k => [k, !!gwKey])));
@@ -182,8 +199,12 @@ export default async function handler(req) {
   const proUser = wantPro ? await isPro(req) : true;
   if (!['low', 'medium', 'high'].includes(body.reasoning_effort) || (body.reasoning_effort === 'high' && !proUser)) delete body.reasoning_effort;
   if (body.max_tokens) body.max_tokens = Math.min(+body.max_tokens || 4096, proUser ? 8192 : 4096);
-  body.model = pickModel(b.model);
-  if (PRO_MODELS.has(body.model) && !(await isPro(req))) return J({ error: { message: 'Model ini khusus Pro. Buka menu Atur > Langganan untuk upgrade.', code: 'pro_required' } }, 402);
+  const pm = await pickModel(b.model, gwKey);
+  body.model = pm.id;
+  // model baru dari gateway yang belum ada di daftar bawaan dianggap Pro (biaya tidak diketahui); bebaskan lewat env FREE_MODELS
+  const FREE_M = (process.env.FREE_MODELS || '').split(',').map(s => s.trim()).filter(Boolean);
+  const needPro = PRO_MODELS.has(body.model) || (pm.dyn && !FREE_M.includes(body.model));
+  if (needPro && !(await isPro(req))) return J({ error: { message: 'Model ini khusus Pro. Buka menu Atur > Langganan untuk upgrade.', code: 'pro_required' } }, 402);
 
   if (await overQuota(req, ip)) return J({ error: { message: 'Batas harian paket Gratis tercapai. Upgrade ke Pro untuk tanpa batas.', code: 'quota' } }, 429);
 
