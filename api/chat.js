@@ -177,19 +177,27 @@ export default async function handler(req) {
 
   const an = d.p === 'anthropic';
   const body = an ? toOpenAI(b) : { ...b, stream: true };
-  if (body.max_tokens) body.max_tokens = Math.min(+body.max_tokens || 4096, 4096);
+  // Upaya AI: reasoning_effort hanya low/medium/high; 'high' dan token besar khusus Pro
+  const wantPro = body.reasoning_effort === 'high' || +body.max_tokens > 4096;
+  const proUser = wantPro ? await isPro(req) : true;
+  if (!['low', 'medium', 'high'].includes(body.reasoning_effort) || (body.reasoning_effort === 'high' && !proUser)) delete body.reasoning_effort;
+  if (body.max_tokens) body.max_tokens = Math.min(+body.max_tokens || 4096, proUser ? 8192 : 4096);
   body.model = pickModel(b.model);
   if (PRO_MODELS.has(body.model) && !(await isPro(req))) return J({ error: { message: 'Model ini khusus Pro. Buka menu Atur > Langganan untuk upgrade.', code: 'pro_required' } }, 402);
 
   if (await overQuota(req, ip)) return J({ error: { message: 'Batas harian paket Gratis tercapai. Upgrade ke Pro untuk tanpa batas.', code: 'quota' } }, 429);
 
   let r;
+  const callGw = () => fetch(GW_URL, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: 'Bearer ' + gwKey },
+    body: JSON.stringify(body),
+  });
   try {
-    r = await fetch(GW_URL, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: 'Bearer ' + gwKey },
-      body: JSON.stringify(body),
-    });
+    r = await callGw();
+    // Beberapa model menolak parameter upaya: coba lagi tanpa reasoning_effort, lalu tanpa max_tokens
+    if (r.status === 400 && body.reasoning_effort) { delete body.reasoning_effort; r = await callGw(); }
+    if (r.status === 400 && b.max_tokens && body.max_tokens) { delete body.max_tokens; r = await callGw(); }
   } catch { return J({ error: { message: 'Gateway tidak bisa dihubungi' } }, 502); }
 
   const convert = an && r.ok && r.body;
