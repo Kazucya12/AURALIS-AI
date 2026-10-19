@@ -360,7 +360,7 @@ a.cite{display:inline-block;min-width:1.35em;text-align:center;font-size:.7em;li
 <input id="q" placeholder="Cari obrolan...">
 <div id="sact" class="hide"></div>
 <div id="list"></div>
-<button class="mtr hide" id="meter" aria-label="Pemakaian hari ini"><span><em>Pemakaian hari ini</em><b></b></span><i><u></u></i><small></small></button>
+<button class="mtr hide" id="meter" aria-label="Pemakaian token"><span><em>Token (reset 6 jam)</em><b></b></span><i><u></u></i><small></small></button>
 <button class="upg hide" id="upg"><b>Buka Pro</b><small>Tanpa batas pesan, semua model, sinkron</small></button>
 <div class="me"><div class="av" id="mav"></div><div><b id="mnm"></b><span class="plan hide" id="plan">Pro</span><small id="mem"></small></div><button class="ib sm hide" id="lockb" title="Kunci aplikasi">🔒</button><button class="ghost" id="setb">Atur</button></div>
 </aside><div id="shade"></div>
@@ -398,7 +398,7 @@ analyze:['Analisis','Kamu analis tajam. Pecah masalah menjadi langkah, bandingka
 const FILEI='\nSaat menulis kode: tulis kode LENGKAP dan siap dijalankan, jangan dipotong atau diganti dengan "...". Taruh nama berkas setelah nama bahasa pada baris pembuka blok kode, mis. ```html index.html, ```css style.css, ```js script.js, ```python main.py, ```json package.json, ```java Main.java. Bila proyek butuh lebih dari satu berkas, buat satu blok per berkas dengan namanya masing-masing dan hubungkan lewat jalur relatif (<link href="style.css">, <script src="script.js">). Jenis berkas apa pun boleh: HTML, CSS, JS, TS, Python, Java, C/C++, C#, Go, Rust, PHP, SQL, JSON, YAML, Markdown, shell, dan lainnya.';
 const ARTI='\nJika pengguna meminta halaman web, aplikasi mini, tampilan UI, animasi, atau diagram visual, tulis SATU file HTML lengkap (CSS dan JS inline, tanpa file eksternal) dalam satu blok ```html agar bisa dipratinjau sebagai artefak. Untuk gambar vektor gunakan blok ```svg. Jangan memotong kode.';
 const DEF={theme:'dark',acc:'lamp',font:15,lh:1.55,ff:'hyper',rf:'serif',v3:1,amem:true,cf:'jb',dens:'normal',anim:'full',bg:true,enter:true,
-temp:.7,eff:1,sys:'',persona:'default',mem:'',smem:true,art:true,model:'glm-5.3',lim:50,
+temp:.7,eff:1,sys:'',persona:'default',mem:'',smem:true,art:true,model:'glm-5.3',
 voice:'',rate:1,pitch:1,tvol:1,auto:false,lang:'id-ID',vauto:false,
 snd:true,sndk:'lembut',vol:60,sndSend:false,vib:true,nt:false,qh:false,qf:'22:00',qt:'07:00',
 tz:'auto',h24:true,ts:true,dsep:true,clk:false,inj:true,
@@ -768,6 +768,8 @@ async function ask(onTok,extra,mo){
  if(!m.nt)body.temperature=s.temp;
  if(ef.re&&!m.nt)body.reasoning_effort=ef.re;if(ef.mt&&!m.nt)body.max_tokens=ef.mt;
  body.messages=[{role:'system',content:sys},...h];
+ lastIn=estTok(JSON.stringify(body.messages).replace(/data:[^"]{200,}/g,'x'))+(vi>=0?800:0);
+ if(overLim()){limHit();throw Error('Batas token tercapai. Reset dalam '+resetTxt()+'.')}
  const r=await fetch(API,{method:'POST',signal:ctl.signal,headers:{'content-type':'application/json',...LH()},body:JSON.stringify({p:m.p,body})});
  if(r.status==402)proView('model');
  if(!r.ok){let e='Permintaan gagal ('+r.status+')';try{const j=await r.json();e=j.error?.message||e;if(j.error&&j.error.code=='quota')proView('msgs')}catch{}throw Error(e)}
@@ -788,6 +790,7 @@ async function reply(o){
   await ask(t=>{out=t;if(!raf)raf=requestAnimationFrame(paint)},ex,o.model)}
  catch(e){if(e.name!='AbortError')out+=(out?'\n\n':'')+'⚠️ '+(e.message=='Failed to fetch'?'Tidak bisa terhubung ke server. Periksa koneksi internet.':e.message)}
  if(raf)cancelAnimationFrame(raf);
+ if(out&&!out.startsWith('⚠️')){usage(lastIn+estTok(out));meterUI(1)}
  const mEl=b.closest('.m'),bad=out.startsWith('⚠️');
  if(o.keep&&(!out||bad)){cur.msgs.push(o.keep);if(bad)toast(out.replace(/^⚠️\s*/,''));drawMsgs();save();busyUI(false);side();stick();return}
  if(out){
@@ -797,20 +800,26 @@ async function reply(o){
   b.insertAdjacentHTML('beforeend',`<div class="ts" title="${esc(fullT(ts))}">${fmtT(ts)}${lastM?' · '+esc(lastM):''}</div>`);
   acts(b,true,0,m);mEl.dataset.i=cur.msgs.length-1;mathFix(bc);done(out);if(S().auto)speak(out,1)}else mEl.remove();
  save();busyUI(false);side();stick();if(out&&!bad)memLearn()}
-function usage(n){const k=dayKey(Date.now());if(!D.use||D.use.d!=k)D.use={d:k,n:0};if(n){D.use.n+=n;D.stats[k]=(D.stats[k]||0)+n;save()}return D.use.n}
+const WIN=216e5;let lastIn=0;
+const estTok=s=>Math.ceil((s||'').length/4);
+const fN=n=>Math.round(n).toLocaleString('id-ID'),fK=n=>n>=1000?(n/1000).toFixed(n>=10000?0:1).replace('.',',')+'rb':String(n);
+function usage(n){const now=Date.now();if(!D.use||!D.use.s||now>=D.use.s+WIN)D.use={s:0,n:0};
+ if(n){n=Math.round(n);if(!D.use.s)D.use.s=now;D.use.n+=n;const k=dayKey(now);D.stats[k]=(D.stats[k]||0)+n;save()}return D.use.n}
+function resetTxt(){const ms=D.use&&D.use.s?Math.max(0,D.use.s+WIN-Date.now()):WIN,m=Math.ceil(ms/6e4),h=Math.floor(m/60);return h?h+' jam '+(m%60)+' menit':m+' menit'}
+function overLim(){const L=TOKLIM();return L>0&&usage()>=L}
+function limHit(){if(isPro())toast('Batas '+fN(TOKLIM())+' token tercapai. Reset dalam '+resetTxt());else proView('msgs')}
 async function send(t){
  t=(t||'').trim();if((!t&&!atts.length)||busy)return;
  if(atts.some(a=>a.loading))return toast('Berkas masih dibaca…');
  if(!navigator.onLine)return toast('Kamu sedang offline. Pesan belum bisa dikirim.');
- const lim=S().lim;if(lim&&usage()>=lim)return toast('Batas harian '+lim+' pesan tercapai');
- if(!isPro()&&usage()>=FREE.msgs)return proView('msgs');
+ if(overLim())return limHit();
  if(!cur)mk();
  let img=null;const docs=[];
  atts.forEach(a=>{if(a.img)img=a.img;else docs.push({n:a.name,t:a.text})});
  if(!t)t=docs.length?'Tolong baca dan rangkum '+(docs.length>1?'berkas-berkas ini.':'berkas ini.'):'Tolong analisis gambar ini.';
  const prev=cur.msgs[cur.msgs.length-1],ts=Date.now(),msg={r:'user',c:t,img,t:ts};if(docs.length)msg.docs=docs;
  cur.msgs.push(msg);if(cur.msgs.length==1)cur.title=t.slice(0,40);cur.t=ts;
- usage(1);atts=[];renderAtt();meterUI(1);
+ atts=[];renderAtt();meterUI();
  $('#in').value='';$('#in').style.height='auto';slashHide();save();side();drawTitle();drawSub(1);
  if(cur.msgs.length==1)$('#w').innerHTML='';
  if(S().dsep&&(!prev||!prev.t||dayKey(prev.t)!=dayKey(ts)))$('#w').insertAdjacentHTML('beforeend',`<div class="dsep">${dayLbl(ts)}</div>`);
@@ -1097,17 +1106,17 @@ persona(){return `<h3>Persona</h3><div class="grp">
 pakai(){
  const days=[...Array(7)].map((_,i)=>{const ts=Date.now()-(6-i)*864e5;return{n:D.stats[dayKey(ts)]||0,l:new Intl.DateTimeFormat('id-ID',{weekday:'short',timeZone:TZ()}).format(ts)}});
  const mx=Math.max(1,...days.map(d=>d.n)),tot=days.reduce((a,d)=>a+d.n,0);
- return `<h3>Pemakaian</h3><p class="hint">Pesan, obrolan, dan prompt cepat milikmu.</p>
- <div class="stg"><div class="stc"><b>${usage()}</b><span class="hint">hari ini</span></div><div class="stc"><b>${tot}</b><span class="hint">7 hari</span></div><div class="stc"><b>${D.chats.length}</b><span class="hint">obrolan</span></div><div class="stc"><b>${D.arts.length+D.snip.length}</b><span class="hint">kode & artefak</span></div></div>
- <div class="pvw"><div class="bars">${days.map((d,i)=>`<div><span>${d.n}</span><i style="--h:${Math.round(d.n/mx*100)}%;--i:${i}"></i><span>${esc(d.l)}</span></div>`).join('')}</div></div>
- <div class="grp">${SEL('lim','Batas pesan per hari',[['25','25'],['50','50'],['100','100'],['200','200'],['500','500'],['0','Tanpa batas']],'Mencegah pemakaian berlebihan',1)}</div>
+ return `<h3>Pemakaian</h3><p class="hint">Perkiraan token yang terpakai (prompt + jawaban), obrolan, dan artefak milikmu.</p>
+ <div class="stg"><div class="stc"><b>${fK(D.stats[dayKey(Date.now())]||0)}</b><span class="hint">hari ini</span></div><div class="stc"><b>${fK(tot)}</b><span class="hint">7 hari</span></div><div class="stc"><b>${D.chats.length}</b><span class="hint">obrolan</span></div><div class="stc"><b>${D.arts.length+D.snip.length}</b><span class="hint">kode & artefak</span></div></div>
+ <div class="pvw"><div class="bars">${days.map((d,i)=>`<div><span>${fK(d.n)}</span><i style="--h:${Math.round(d.n/mx*100)}%;--i:${i}"></i><span>${esc(d.l)}</span></div>`).join('')}</div></div>
+ <div class="grp">${fr('Batas token','Direset otomatis tiap 6 jam',`<span>${fN(usage())} / ${TOKLIM()?fN(TOKLIM()):'∞'}</span>`)}</div>
  <div class="hint">Prompt cepat kustom (ketik / di kolom pesan)</div>
  <div>${(D.prm||[]).map((p,i)=>`<div class="kn"><span><b>/${esc(p.n)}</b> ${esc(p.t.slice(0,50))}</span><button data-do="prm-del" data-i="${i}" aria-label="Hapus">✕</button></div>`).join('')||'<div class="hint">Belum ada.</div>'}</div>
  <div class="grp"><div class="fr col"><div>Tambah prompt</div><div class="ctl" style="flex-direction:column"><input id="prn" placeholder="Nama singkat, mis. review" maxlength="20"><textarea id="prt" rows="2" placeholder="Isi prompt"></textarea><button class="btn sm" data-do="prm-add" style="align-self:flex-start">Tambah</button></div></div></div>`},
 data(){return `<h3>Keamanan akun</h3><p class="hint">Kode pemulihan dipakai untuk membuat kata sandi baru bila kamu lupa. Simpan di tempat aman, misalnya pengelola kata sandi atau catatan pribadi.</p><div class="btns">${BTN('rec-new',(users[me]&&users[me].rh?'Buat kode pemulihan baru':'Buat kode pemulihan'))}</div><h3 style="margin-top:22px">Data</h3><div class="btns">${BTN('exp-json','Ekspor semua data (JSON)')}${BTN('imp','Impor data')}</div><input type="file" id="impf" class="hide" accept=".json,application/json">
  <div class="btns">${BTN('clr-chats','Hapus semua obrolan','danger')}${BTN('trash-open','Sampah ('+((D.trash||[]).length)+')')}${BTN('clr-code','Hapus kode & artefak','danger')}${BTN('reset','Reset pengaturan')}</div>
  <div class="btns">${BTN('del-acc','Hapus akun','danger')}</div>`},
-info(){return `<h3>Info</h3><div class="grp">${fr('Auralis AI','Versi 2.0','<span class="tag">v2.0</span>')}${fr('Pemakaian hari ini',null,`<span>${usage()} / ${S().lim||'∞'}</span>`)}</div>
+info(){return `<h3>Info</h3><div class="grp">${fr('Auralis AI','Versi 2.0','<span class="tag">v2.0</span>')}${fr('Token 6 jam ini',null,`<span>${fN(usage())} / ${TOKLIM()?fN(TOKLIM()):'∞'}</span>`)}</div>
  <div class="btns">${BTN('install','Pasang sebagai aplikasi')}${BTN('tos','Syarat layanan')}${BTN('prv','Kebijakan privasi')}</div>
  <div class="pvw"><b>Pintasan</b><div class="hint" style="margin-top:6px;line-height:1.9">Ctrl+K palet perintah<br>Ctrl+. mode fokus<br>Ctrl+, pengaturan<br>/ di kolom pesan: prompt cepat<br>Esc tutup jendela</div></div>`}};
 function renderPane(anim){
@@ -1472,7 +1481,8 @@ function mathFix(root){
 loadAVW();
 
 /* ===== Auralis AI · bagian 6: Pro, sampah, urungkan, pilih banyak ===== */
-const FREE={msgs:25,atts:2};
+const FREE={tok:15000,pro:50000,atts:2};
+const TOKLIM=()=>PRO.on?(isPro()?FREE.pro:FREE.tok):0;
 const PROM=new Set(['claude-opus-5-5','claude-sonnet-5-5','gpt-5.6','gpt-5.6-luna','kimi-k3']);
 const PROAPI=window.AURALIS_PRO||'/api/pro';
 let PRO={on:L('ap_pro_on',false),auto:false,pay:'',contact:'',plans:[]},LIC=null;
@@ -1503,20 +1513,21 @@ async function proRedeem(code){
  toast('Pro aktif sampai '+dateStr(LIC.exp))}
 function proUI(){const on=PRO.on&&isPro();$('#plan').classList.toggle('hide',!on);$('#upg').classList.toggle('hide',!PRO.on||on);meterUI()}
 function meterUI(warn){
- const m=$('#meter'),show=!!D&&PRO.on&&!isPro();m.classList.toggle('hide',!show);if(!show)return;
- const n=usage(),p=Math.min(100,Math.round(n/FREE.msgs*100)),left=Math.max(0,FREE.msgs-n);
+ const m=$('#meter'),L=TOKLIM(),show=!!D&&L>0;m.classList.toggle('hide',!show);if(!show)return;
+ const n=usage(),p=Math.min(100,Math.round(n/L*100)),left=Math.max(0,L-n);
  m.classList.toggle('warn',p>=80);m.querySelector('b').textContent=p+'%';m.querySelector('u').style.width=p+'%';
- m.querySelector('small').textContent=left?'Sisa '+left+' pesan. Reset tengah malam.':'Batas tercapai. Reset tengah malam atau buka Pro.';
- if(warn&&p>=80&&p<100&&!D.use.w){D.use.w=1;save();toast('Sisa '+left+' pesan hari ini di paket Gratis')}}
+ m.querySelector('small').textContent=left?'Sisa '+fN(left)+' token. Reset dalam '+resetTxt()+'.':'Batas tercapai. Reset dalam '+resetTxt()+(isPro()?'.':' atau buka Pro.');
+ if(warn&&p>=80&&p<100&&!D.use.w){D.use.w=1;save();toast('Sisa '+fN(left)+' token. Reset dalam '+resetTxt())}}
+setInterval(()=>{try{meterUI()}catch(e){}},6e4);
 $('#meter').onclick=()=>proView('msgs');
 $('#upg').onclick=()=>proView();
 
-const WHY={msgs:['Batas harian paket Gratis tercapai','Kamu sudah memakai '+FREE.msgs+' pesan hari ini. Pro membuka obrolan tanpa batas.'],model:['Model ini khusus Pro','Claude, GPT, dan Kimi tersedia di Pro.'],gen:['Pembuat gambar dan video khusus Pro','Buat gambar dan video dari deskripsi teks langsung di obrolan.'],upaya:['Upaya Tinggi khusus Pro','Upaya Tinggi dan Sangat Tinggi membuat AI berpikir lebih teliti dan lebih dalam.'],web:['Pencarian web khusus Pro','Jawaban dengan sumber terbaru dari internet.'],atts:['Lampiran lebih banyak khusus Pro','Paket Gratis memuat '+FREE.atts+' lampiran sekaligus, Pro sampai 5.'],sync:['Sinkron antar perangkat khusus Pro','Obrolanmu terenkripsi dan sama di semua perangkat.'],art:['Berkas tambahan dan riwayat artefak khusus Pro','Pisahkan CSS dan JS, lalu pulihkan versi lama.'],link:['Tautan berbagi khusus Pro','Bagikan obrolan sebagai halaman baca-saja.']};
+const WHY={msgs:['Batas token paket Gratis tercapai','Kamu sudah memakai '+FREE.tok.toLocaleString('id-ID')+' token. Batas direset otomatis setiap 6 jam, dan Pro memberi '+FREE.pro.toLocaleString('id-ID')+' token per 6 jam.'],model:['Model ini khusus Pro','Claude, GPT, dan Kimi tersedia di Pro.'],gen:['Pembuat gambar dan video khusus Pro','Buat gambar dan video dari deskripsi teks langsung di obrolan.'],upaya:['Upaya Tinggi khusus Pro','Upaya Tinggi dan Sangat Tinggi membuat AI berpikir lebih teliti dan lebih dalam.'],web:['Pencarian web khusus Pro','Jawaban dengan sumber terbaru dari internet.'],atts:['Lampiran lebih banyak khusus Pro','Paket Gratis memuat '+FREE.atts+' lampiran sekaligus, Pro sampai 5.'],sync:['Sinkron antar perangkat khusus Pro','Obrolanmu terenkripsi dan sama di semua perangkat.'],art:['Berkas tambahan dan riwayat artefak khusus Pro','Pisahkan CSS dan JS, lalu pulihkan versi lama.'],link:['Tautan berbagi khusus Pro','Bagikan obrolan sebagai halaman baca-saja.']};
 function proBody(why){
  if(!PRO.on)return '<h3>Langganan</h3><p class="hint">Sistem langganan belum diaktifkan di server ini, jadi semua fitur terbuka. Pemilik aplikasi bisa mengaktifkannya lewat api/pro.js.</p>';
- const pro=isPro(),w=WHY[why];
+ const pro=isPro();let w=WHY[why];if(why=='msgs'&&w)w=[w[0],w[1]+' Reset dalam '+resetTxt()+'.'];
  const head=pro?`<h3>Pro aktif</h3><p class="hint">Berlaku sampai ${dateStr(LIC.exp)}. Memasukkan kode baru menggantikan kode yang lama.</p>`:`<h3>${w?w[0]:'Auralis Pro'}</h3><p class="hint">${w?w[1]:'Buka semua fitur Auralis.'}</p>`;
- const rows=[['Pesan per hari',String(FREE.msgs),'Tanpa batas'],['Model','Dasar','Semua, termasuk Claude, GPT, Kimi'],['Lampiran sekaligus',String(FREE.atts),'5'],['Pencarian web','Tidak','Ya'],['Sinkron antar perangkat','Tidak','Ya'],['Artefak multi-berkas dan riwayat','Tidak','Ya'],['Tautan berbagi baca-saja','Tidak','Ya']];
+ const rows=[['Token per 6 jam','15.000','50.000'],['Model','Dasar','Semua, termasuk Claude, GPT, Kimi'],['Lampiran sekaligus',String(FREE.atts),'5'],['Pencarian web','Tidak','Ya'],['Sinkron antar perangkat','Tidak','Ya'],['Artefak multi-berkas dan riwayat','Tidak','Ya'],['Tautan berbagi baca-saja','Tidak','Ya']];
  const plans=PRO.plans.length?`<div style="margin:6px 0 12px">${PRO.plans.map((p,i)=>PRO.auto?`<div class="pl"><span>${esc(p.n)}</span><button class="btn sm" data-do="pro-buy" data-i="${i}">${esc(p.p||'Bayar')}</button></div>`:`<div class="pl"><span>${esc(p.n)}</span><b>${esc(p.p)}</b></div>`).join('')}</div><p id="paywait" class="hint hide">Menunggu pembayaran selesai. Pro aktif otomatis setelah dibayar, jangan tutup halaman ini.</p>`:'';
  const buy=PRO.auto?`<p class="hint">Pilih paket di atas. Kamu diarahkan ke halaman pembayaran Midtrans (QRIS, e-wallet, transfer bank). Pro aktif otomatis setelah dibayar.</p>`:PRO.pay||PRO.contact?`<div class="btns" style="margin:10px 0">${PRO.pay?`<button class="btn" data-do="pro-pay">${pro?'Perpanjang':'Beli Pro'}</button>`:''}${PRO.contact?'<button class="ghost" data-do="pro-wa">Kirim bukti bayar</button>':''}</div><p class="hint">Setelah membayar, penjual mengirim kode kepadamu. Masukkan kode itu di bawah.</p>`:'<p class="hint">Hubungi pemilik aplikasi untuk membeli kode Pro.</p>';
  return head+`<table class="cmp"><tr><th>Fitur</th><th>Gratis</th><th>Pro</th></tr>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</table>`+plans+buy+
