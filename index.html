@@ -772,7 +772,7 @@ async function ask(onTok,extra,mo){
  if(overLim()){limHit();throw Error('Batas token tercapai. Reset dalam '+resetTxt()+'.')}
  const r=await fetch(API,{method:'POST',signal:ctl.signal,headers:{'content-type':'application/json',...LH()},body:JSON.stringify({p:m.p,body})});
  if(r.status==402)proView('model');
- if(!r.ok){let e='Permintaan gagal ('+r.status+')';try{const j=await r.json();e=j.error?.message||e;if(j.error&&j.error.code=='quota')proView('msgs')}catch{}throw Error(e)}
+ if(!r.ok){let e='Permintaan gagal ('+r.status+')';try{const j=await r.json();e=j.error?.message||e;if(j.error&&j.error.code=='quota'){limHit();usageSync()}}catch{}throw Error(e)}
  const rd=r.body.getReader(),dc=new TextDecoder();let buf='',out='';
  for(;;){const{done,value}=await rd.read();if(done)break;buf+=dc.decode(value,{stream:true});const ls=buf.split('\n');buf=ls.pop();
   for(const l of ls){if(!l.startsWith('data:'))continue;const d=l.slice(5).trim();if(d=='[DONE]')continue;try{const j=JSON.parse(d),t=j.choices?j.choices[0]?.delta?.content:(j.type=='content_block_delta'?j.delta.text:'');if(t){out+=t;onTok(out)}}catch{}}}
@@ -790,7 +790,7 @@ async function reply(o){
   await ask(t=>{out=t;if(!raf)raf=requestAnimationFrame(paint)},ex,o.model)}
  catch(e){if(e.name!='AbortError')out+=(out?'\n\n':'')+'⚠️ '+(e.message=='Failed to fetch'?'Tidak bisa terhubung ke server. Periksa koneksi internet.':e.message)}
  if(raf)cancelAnimationFrame(raf);
- if(out&&!out.startsWith('⚠️')){usage(lastIn+estTok(out));meterUI(1)}
+ if(out&&!out.startsWith('⚠️')){usage(lastIn+estTok(out));meterUI(1);usageSync()}
  const mEl=b.closest('.m'),bad=out.startsWith('⚠️');
  if(o.keep&&(!out||bad)){cur.msgs.push(o.keep);if(bad)toast(out.replace(/^⚠️\s*/,''));drawMsgs();save();busyUI(false);side();stick();return}
  if(out){
@@ -1482,7 +1482,8 @@ loadAVW();
 
 /* ===== Auralis AI · bagian 6: Pro, sampah, urungkan, pilih banyak ===== */
 const FREE={tok:15000,pro:50000,atts:2};
-const TOKLIM=()=>PRO.on?(isPro()?FREE.pro:FREE.tok):0;
+let SRV=null;
+const TOKLIM=()=>PRO.on?(SRV&&SRV.pro===isPro()?SRV.limit:(isPro()?FREE.pro:FREE.tok)):0;
 const PROM=new Set(['claude-opus-5-5','claude-sonnet-5-5','gpt-5.6','gpt-5.6-luna','kimi-k3']);
 const PROAPI=window.AURALIS_PRO||'/api/pro';
 let PRO={on:L('ap_pro_on',false),auto:false,pay:'',contact:'',plans:[]},LIC=null;
@@ -1498,7 +1499,7 @@ async function proInit(){
  try{const j=await(await fetch(PROAPI)).json();PRO={on:!!j.enabled,auto:!!j.auto,pay:j.payUrl||'',contact:j.contact||'',plans:j.plans||[]};W('ap_pro_on',PRO.on)}catch{}
  licLoad();
  if(PRO.on&&LIC&&(LIC.te-Date.now()<3*864e5||Date.now()-(LIC.rt||0)>12*36e5))await proRefresh();
- proUI();fillModels();webBtn();payResume()}
+ proUI();fillModels();webBtn();payResume();usageSync()}
 async function proRefresh(){
  if(!LIC||!LIC.code)return;
  try{const r=await proPost({action:'redeem',code:LIC.code,dev:devId()});
@@ -1508,7 +1509,7 @@ async function proRefresh(){
 async function proRedeem(code){
  const r=await proPost({action:'redeem',code,dev:devId()});
  if(!r.ok)throw Error(perr(r));
- LIC={code:normCode(code),token:r.j.token,te:r.j.te,exp:r.j.exp,rt:Date.now()};W(licKey(),LIC);
+ LIC={code:normCode(code),token:r.j.token,te:r.j.te,exp:r.j.exp,rt:Date.now()};W(licKey(),LIC);usageSync();
  proUI();fillModels();webBtn();if(PANE&&PANE.isConnected&&SECID=='langganan')renderPane();
  toast('Pro aktif sampai '+dateStr(LIC.exp))}
 function proUI(){const on=PRO.on&&isPro();$('#plan').classList.toggle('hide',!on);$('#upg').classList.toggle('hide',!PRO.on||on);meterUI()}
@@ -1518,6 +1519,11 @@ function meterUI(warn){
  m.classList.toggle('warn',p>=80);m.querySelector('b').textContent=p+'%';m.querySelector('u').style.width=p+'%';
  m.querySelector('small').textContent=left?'Sisa '+fN(left)+' token. Reset dalam '+resetTxt()+'.':'Batas tercapai. Reset dalam '+resetTxt()+(isPro()?'.':' atau buka Pro.');
  if(warn&&p>=80&&p<100&&!D.use.w){D.use.w=1;save();toast('Sisa '+fN(left)+' token. Reset dalam '+resetTxt())}}
+async function usageSync(){
+ if(!D||!PRO.on)return;
+ try{const r=await fetch(API+'?usage=1',{headers:LH()});if(!r.ok)return;const j=await r.json();if(!j.on)return;
+  const w=D.use&&D.use.w;D.use=j.used>0?{s:Date.now()-(WIN-j.reset),n:j.used}:{s:0,n:0};if(w&&j.used>0)D.use.w=1;
+  SRV={pro:isPro(),limit:j.limit};save();meterUI()}catch(e){}}
 setInterval(()=>{try{meterUI()}catch(e){}},6e4);
 $('#meter').onclick=()=>proView('msgs');
 $('#upg').onclick=()=>proView();
@@ -1531,10 +1537,7 @@ function proBody(why){
  const plans=PRO.plans.length?`<div style="margin:6px 0 12px">${PRO.plans.map((p,i)=>PRO.auto?`<div class="pl"><span>${esc(p.n)}</span><button class="btn sm" data-do="pro-buy" data-i="${i}">${esc(p.p||'Bayar')}</button></div>`:`<div class="pl"><span>${esc(p.n)}</span><b>${esc(p.p)}</b></div>`).join('')}</div><p id="paywait" class="hint hide">Menunggu pembayaran selesai. Pro aktif otomatis setelah dibayar, jangan tutup halaman ini.</p>`:'';
  const buy=PRO.auto?`<p class="hint">Pilih paket di atas. Kamu diarahkan ke halaman pembayaran Midtrans (QRIS, e-wallet, transfer bank). Pro aktif otomatis setelah dibayar.</p>`:PRO.pay||PRO.contact?`<div class="btns" style="margin:10px 0">${PRO.pay?`<button class="btn" data-do="pro-pay">${pro?'Perpanjang':'Beli Pro'}</button>`:''}${PRO.contact?'<button class="ghost" data-do="pro-wa">Kirim bukti bayar</button>':''}</div><p class="hint">Setelah membayar, penjual mengirim kode kepadamu. Masukkan kode itu di bawah.</p>`:'<p class="hint">Hubungi pemilik aplikasi untuk membeli kode Pro.</p>';
  return head+`<table class="cmp"><tr><th>Fitur</th><th>Gratis</th><th>Pro</th></tr>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</table>`+plans+buy+
- `<div class="f" style="margin-top:14px"><label for="lic">Sudah punya kode?</label><div class="cd"><input id="lic" placeholder="AURA-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" maxlength="24"><button class="btn sm" data-do="pro-act">Aktifkan</button></div></div>`+
- `<details class="sell"><summary>Saya penjual</summary><div class="cd"><input id="adm" type="password" placeholder="Kata sandi penjual" autocomplete="off"></div>
- <div class="cd"><select id="sd"><option value="30">30 hari</option><option value="90">90 hari</option><option value="365">1 tahun</option></select><input id="sc" type="number" min="1" max="20" value="1" aria-label="Jumlah kode"><input id="sn" placeholder="Catatan (nama pembeli)" maxlength="60"></div>
- <div class="btns" style="margin-top:8px"><button class="btn sm" data-do="pro-new">Buat kode</button><button class="ghost" data-do="pro-list">Daftar kode</button></div><div id="sres"></div></details>`}
+ `<div class="f" style="margin-top:14px"><label for="lic">Sudah punya kode?</label><div class="cd"><input id="lic" placeholder="AURA-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" maxlength="24"><button class="btn sm" data-do="pro-act">Aktifkan</button></div></div>`+(typeof admHas=='function'&&admHas()?'<div class="btns" style="margin-top:14px"><button class="ghost" data-do="adm-open">Panel admin</button></div>':'')}
 function proView(why){
  closeAll();
  const o=modal(`<div class="mh">Auralis Pro<button class="ghost" data-x>Tutup</button></div><div class="mbd pm">${proBody(why)}</div>`);
@@ -1555,17 +1558,8 @@ async function proAct(d,el,root){
    W('ap_ord',{o:j.order,t:Date.now()});window.open(j.url,'_blank','noopener');payPoll(j.order)}
   catch(e){toast(e.message)}
   el.disabled=false}
- else if(d=='pro-copy'){navigator.clipboard.writeText(q('.codes').textContent);toast('Kode disalin')}
- else{
-  const pw=q('#adm').value;if(!pw)return toast('Isi kata sandi penjual');
-  const call=async b=>{const r=await proPost(b,{'x-admin':pw});if(!r.ok)throw Error(perr(r));return r.j};
-  try{
-   if(d=='pro-new'){const j=await call({action:'create',days:+q('#sd').value,count:+q('#sc').value||1,note:q('#sn').value});q('#sres').innerHTML=`<div class="codes">${esc(j.codes.join('\n'))}</div><button class="ghost" data-do="pro-copy" style="margin-top:6px">Salin semua</button>`}
-   else if(d=='pro-list'||d=='pro-rev'){
-    if(d=='pro-rev'){if(!confirm('Cabut kode '+el.dataset.c+'? Pemakainya kehilangan Pro dalam beberapa hari.'))return;await call({action:'revoke',code:el.dataset.c})}
-    const j=await call({action:'list'}),now=Date.now();
-    q('#sres').innerHTML=j.rows.length?j.rows.map(r=>{const st=r.rev?'Dicabut':!r.exp?'Belum dipakai · '+r.d+' hari':r.exp<now?'Kedaluwarsa':'Aktif sampai '+dateStr(r.exp)+' · '+r.devs+'/'+r.max+' perangkat';return `<div class="lrow"><code>${esc(r.code)}</code><span class="hint">${esc(r.note?r.note+' · ':'')}${st}</span>${r.rev?'':`<button class="ghost danger" data-do="pro-rev" data-c="${esc(r.code)}">Cabut</button>`}</div>`}).join(''):'<p class="hint">Belum ada kode.</p>'}
-  }catch(e){toast(e.message)}}}
+ else if(d=='adm-open'){closeAll();admOpen()}
+}
 
 /* --- hapus obrolan: sampah, urungkan, pilih banyak --- */
 const CSEL={on:false,ids:new Set()};
@@ -2039,6 +2033,71 @@ $('#w').addEventListener('click',e=>{
   const rest=f.filter(x=>x!==h&&(x.l=='css'||x.l=='js'||x.l=='javascript')).map(x=>({n:dir&&x.n.startsWith(dir)?x.n.slice(dir.length):x.n,c:x.c}))
    .filter(x=>new RegExp('(?:src|href)=["\']\\.?/?'+esc2(x.n)+'["\']','i').test(h.c)); // hanya berkas yang dirujuk HTML (modul ES lain tidak disuntik sebagai skrip biasa)
   artView({title:'Proyek: '+(cur.title||h.n).slice(0,40),type:'html',code:h.c,files:rest})}});
+
+/* --- panel admin + penjual: login kode email (hanya ADMIN_EMAIL di server) --- */
+const ADMAPI=window.AURALIS_ADMIN||'/api/admin';
+let ADM=null,ADT=null;try{ADM=sessionStorage.getItem('ap_adm')||null}catch(e){}
+const admHas=()=>!!ADM;
+function admSet(v){ADM=v;try{if(v)sessionStorage.setItem('ap_adm',v);else sessionStorage.removeItem('ap_adm')}catch(e){}}
+async function admPost(url,b,h){
+ const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json',...(h||{})},body:JSON.stringify(b)});let j={};try{j=await r.json()}catch(e){}
+ if(!r.ok){if(url==PROAPI&&(r.status==401||r.status==403))admSet(null);throw Error((j.error&&j.error.message)||'Server '+r.status)}return j}
+const admPro=b=>admPost(PROAPI,b,{'x-admin-session':ADM});
+function admOpen(){
+ closeAll();
+ const o=modal('<div class="mh">Panel admin<button class="ghost" data-x>Tutup</button></div><div class="mbd pm" id="admb"></div>');
+ o.addEventListener('click',e=>{const b=e.target.closest('[data-adm]');if(b)admDo(b.dataset.adm,b,o)});
+ admDraw(o)}
+function admLogin(o){
+ q1(o,'#admb').innerHTML=`<h3>Masuk admin</h3><p class="hint">Hanya email admin yang bisa masuk. Kode 6 digit dikirim ke email itu dan berlaku 10 menit.</p>
+ <div class="f"><label for="adE">Email admin</label><input id="adE" type="email" autocomplete="email" spellcheck="false" placeholder="nama@email.com"></div>
+ <div class="btns"><button class="btn" data-adm="send">Kirim kode</button></div>
+ <div class="f hide" id="adK" style="margin-top:14px"><label for="adC">Kode 6 digit</label><input id="adC" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000"></div>
+ <div class="btns hide" id="adV"><button class="btn" data-adm="verify">Masuk</button></div>`}
+const q1=(o,s)=>o.querySelector(s);
+async function admDraw(o){
+ if(!ADM)return admLogin(o);
+ const box=q1(o,'#admb');
+ box.innerHTML=`<h3>Lisensi Pro</h3><div class="stg" id="adS"></div>
+ <div class="f" style="margin-top:14px"><label>Buat kode baru</label><div class="cd" style="flex-wrap:wrap">
+ <select id="adD" style="width:auto;flex:1;min-width:100px"><option value="30">30 hari</option><option value="90">90 hari</option><option value="180">180 hari</option><option value="365">1 tahun</option><option value="730">2 tahun</option></select>
+ <input id="adN" type="number" min="1" max="20" value="1" aria-label="Jumlah kode" style="width:70px;text-transform:none" title="Jumlah kode">
+ <input id="adM" type="number" min="1" max="10" value="3" aria-label="Maks. perangkat" style="width:70px;text-transform:none" title="Maks. perangkat">
+ <input id="adT" placeholder="Catatan (nama pembeli)" maxlength="60" style="flex:2;min-width:140px;text-transform:none"></div>
+ <p class="hint">Kolom angka: jumlah kode dan maksimal perangkat per kode.</p>
+ <div class="btns"><button class="btn sm" data-adm="make">Buat kode</button><button class="ghost" data-adm="list">Segarkan</button><button class="ghost" data-adm="out">Keluar</button></div><div id="adR"></div></div>
+ <div id="adL" style="margin-top:10px"><p class="hint">Memuat…</p></div>`;
+ admList(o)}
+async function admList(o){
+ try{
+  const j=await admPro({action:'list'}),now=Date.now(),rows=j.rows||[];
+  const act=rows.filter(r=>!r.rev&&r.exp>now).length,free=rows.filter(r=>!r.rev&&!r.exp).length,rev=rows.filter(r=>r.rev).length;
+  q1(o,'#adS').innerHTML=[[rows.length,'kode'],[act,'aktif'],[free,'belum dipakai'],[rev,'dicabut']].map(x=>`<div class="stc"><b>${x[0]}</b><span class="hint">${x[1]}</span></div>`).join('');
+  q1(o,'#adL').innerHTML=rows.length?rows.map(r=>{const st=r.rev?'Dicabut':!r.exp?'Belum dipakai · '+r.d+' hari':r.exp<now?'Kedaluwarsa':'Aktif sampai '+dateStr(r.exp)+' · '+r.devs+'/'+r.max+' perangkat';
+   return `<div class="lrow"><code>${esc(r.code)}</code><span class="hint">${esc(r.note?r.note+' · ':'')+st}</span>${r.rev?'':`<button class="ghost" data-adm="rev" data-c="${esc(r.code)}">Cabut</button>`}</div>`}).join(''):'<p class="hint">Belum ada kode.</p>'}
+ catch(e){toast(e.message);if(!ADM)admLogin(o)}}
+async function admDo(d,el,o){
+ el.disabled=true;
+ try{
+  if(d=='send'){
+   const em=q1(o,'#adE').value.trim();if(!em)return toast('Isi email admin');
+   ADT=await admPost(ADMAPI,{action:'send',email:em});ADT.email=em;
+   q1(o,'#adK').classList.remove('hide');q1(o,'#adV').classList.remove('hide');q1(o,'#adC').focus();toast('Jika email itu admin, kode sudah dikirim')}
+  else if(d=='verify'){
+   const c=q1(o,'#adC').value.trim();if(!ADT)return toast('Kirim kode dulu');if(!/^\d{6}$/.test(c))return toast('Kode 6 digit');
+   const j=await admPost(ADMAPI,{action:'verify',email:ADT.email,code:c,token:ADT.token,exp:ADT.exp});admSet(j.session);ADT=null;admDraw(o)}
+  else if(d=='make'){
+   const j=await admPro({action:'create',days:+q1(o,'#adD').value,count:+q1(o,'#adN').value||1,max:+q1(o,'#adM').value||3,note:q1(o,'#adT').value});
+   q1(o,'#adR').innerHTML=`<div class="codes" id="adCodes">${esc(j.codes.join('\n'))}</div><button class="ghost" data-adm="copy" style="margin-top:6px">Salin semua</button>`;admList(o)}
+  else if(d=='copy'){navigator.clipboard.writeText(q1(o,'#adCodes').textContent);toast('Kode disalin')}
+  else if(d=='list')await admList(o);
+  else if(d=='rev'){if(!confirm('Cabut kode '+el.dataset.c+'? Pemakainya kehilangan Pro dalam beberapa hari.'))return;await admPro({action:'revoke',code:el.dataset.c});await admList(o)}
+  else if(d=='out'){try{await admPost(ADMAPI,{action:'logout'},{'x-admin-session':ADM})}catch(e){}admSet(null);admLogin(o)}
+ }catch(e){toast(e.message)}
+ finally{if(el.isConnected)el.disabled=false}}
+function admHash(){if(location.hash=='#admin'){history.replaceState(null,'',location.pathname+location.search);admOpen()}}
+addEventListener('hashchange',admHash);
+setTimeout(admHash,500);
 
 boot();
 </script></body></html>
