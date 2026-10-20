@@ -263,7 +263,7 @@ a.cite{display:inline-block;min-width:1.35em;text-align:center;font-size:.7em;li
 .pl{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd)}.pl b{color:var(--ac)}
 .cd{display:flex;gap:8px}.cd input{font-family:var(--cf);letter-spacing:.04em;text-transform:uppercase}
 .sell summary{cursor:pointer;color:var(--mu);font-size:.85em;margin-top:18px}.sell .cd{margin-top:8px;flex-wrap:wrap}.sell select,.sell input{width:auto;flex:1;min-width:90px}
-.codes{font-family:var(--cf);font-size:.85em;white-space:pre-wrap;background:var(--s2);padding:10px;border-radius:10px;border:1px solid var(--bd);user-select:all;margin-top:8px}
+.adg{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}.adg label{display:block;font-size:.8em;color:var(--mu)}.adg label,#admb .f>label+.adg{margin-bottom:4px}.adg input,.adg select{width:100%}.lrow{flex-wrap:wrap}.lact{display:flex;gap:6px;flex-wrap:wrap;width:100%;padding-bottom:6px}.lact .ghost{padding:5px 10px;font-size:.92em}.codes{font-family:var(--cf);font-size:.85em;white-space:pre-wrap;background:var(--s2);padding:10px;border-radius:10px;border:1px solid var(--bd);user-select:all;margin-top:8px}
 .lrow{display:flex;gap:8px;align-items:center;font-size:.8em;padding:6px 0;border-bottom:1px solid var(--bd)}.lrow code{font-family:var(--cf);flex:1}.lrow .hint{white-space:nowrap}
 .m.u .acts{opacity:0;justify-content:flex-end;transition:opacity .15s}.m.u:hover .acts,.m.u:focus-within .acts{opacity:1}.m.u .ts{text-align:right}@media(hover:none){.m.u .acts{opacity:.7}}
 .mtr{width:100%;text-align:left;padding:8px 2px 2px;font-size:.8em}.mtr span{display:flex;justify-content:space-between;color:var(--mu)}.mtr em{font-style:normal}.mtr b{color:var(--tx)}.mtr i{display:block;height:5px;border-radius:99px;background:var(--s2);margin:6px 0 4px;overflow:hidden}.mtr u{display:block;height:100%;width:0;border-radius:99px;background:var(--ac);transition:width .5s cubic-bezier(.2,.9,.3,1),background-color .3s}.mtr.warn u{background:var(--er)}.mtr.warn b{color:var(--er)}.mtr small{color:var(--mu);font-size:.95em}
@@ -391,7 +391,7 @@ const ACC={lamp:'#f0b24a',violet:'#8b7bff',ocean:'#38bdf8',rose:'#fb7185',forest
 const FF={sora:['Sora','Sora,system-ui,sans-serif'],inter:['Inter','Inter,system-ui,sans-serif'],nunito:['Nunito (bulat)','Nunito,system-ui,sans-serif'],lora:['Lora (serif)','Lora,Georgia,serif'],hyper:['Atkinson (mudah dibaca)','"Atkinson Hyperlegible",system-ui,sans-serif'],mono:['JetBrains Mono','"JetBrains Mono",ui-monospace,monospace'],sys:['Bawaan sistem','system-ui,-apple-system,"Segoe UI",Roboto,sans-serif']};
 const CF={jb:['JetBrains Mono','"JetBrains Mono",ui-monospace,Menlo,monospace'],sys:['Monospace sistem','ui-monospace,Menlo,Consolas,monospace']};
 const MODES={
-chat:['Chat','Kamu Auralis, asisten AI yang cerdas, jujur, dan ringkas. Jawab dalam bahasa pengguna. Beri jawaban langsung dulu, lalu detail seperlunya. Pakai markdown (judul, daftar, tabel) hanya bila membantu. Jika tidak yakin atau datanya tidak ada, katakan terus terang dan jangan mengarang.'],
+chat:['Chat','Kamu Auralis, teman bicara dan asisten AI yang hangat, penasaran, dan jujur. Ngobrol seperti orang cerdas yang peduli, bukan mesin FAQ. Cocokkan bahasa dan nada pengguna: santai dibalas santai, formal dibalas rapi. Obrolan ringan dijawab pendek dan natural. Pertanyaan serius dijawab langsung dulu, lalu detail seperlunya. Hindari pembuka basa-basi seperti "Tentu!" atau "Pertanyaan bagus!" dan jangan mengulang pertanyaan pengguna. Boleh punya pendapat: kalau ada pilihan yang lebih baik, katakan dengan alasan singkat, sopan tapi tidak menjilat; kalau pengguna keliru, koreksi dengan baik. Tunjukkan antusias dan humor ringan bila pas, emoji secukupnya (paling banyak satu, tidak di setiap pesan). Kalau permintaan ambigu, ajukan satu pertanyaan klarifikasi yang paling penting. Tawarkan langkah lanjut hanya bila memang berguna. Pakai markdown hanya bila membantu, obrolan biasa cukup paragraf pendek. Jika tidak yakin atau datanya tidak ada, katakan terus terang dan jangan mengarang.'],
 code:['Kode','Kamu software engineer senior. Pahami masalahnya dulu, beri kode lengkap yang langsung berjalan dalam blok kode berlabel bahasa, tangani error dan kasus tepi, jangan memotong kode dengan "...". Setelah kode, jelaskan poin penting dan cara mengujinya secara singkat.'],
 write:['Tulis','Kamu penulis profesional. Sesuaikan nada dan gaya dengan permintaan, hasilkan teks rapi dan natural siap pakai, lalu tawarkan satu variasi singkat bila relevan.'],
 analyze:['Analisis','Kamu analis tajam. Pecah masalah menjadi langkah, bandingkan opsi dengan kelebihan dan kekurangannya (tabel bila cocok), akhiri dengan kesimpulan dan rekomendasi yang jelas.']};
@@ -417,7 +417,7 @@ const MODELS=[
 {id:'gpt-5.6',n:'GPT 5.6',p:'qwen',v:1,nt:1},{id:'gpt-5.6-luna',n:'GPT 5.6 Luna',p:'qwen',v:1,nt:1},
 {id:'kimi-k3',n:'Kimi K3',p:'qwen'},{id:'kimi-k2.7-code',n:'Kimi K2.7 Code',p:'qwen'},{id:'auto',n:'Auto',p:'qwen'},
 {id:'deepseek-v4-flash-vision-exp',n:'DeepSeek Vision (gambar)',p:'qwen',v:1}];
-const PER={default:['Default',''],guru:['Guru sabar','Jelaskan seperti guru yang sabar: bertahap dengan contoh sederhana.'],dev:['Programmer','Fokus pada solusi teknis, kode rapi, dan praktik terbaik.'],writer:['Penulis','Gunakan gaya bahasa yang hidup, rapi, dan enak dibaca.'],chill:['Santai','Jawab santai dan singkat, seperti teman.']};
+const PER={default:['Default',''],teman:['Teman akrab','Bicara seperti sahabat dekat yang cerdas: hangat, spontan, kadang bercanda, bahasa sehari-hari, tidak kaku. Tanggapi perasaan pengguna lebih dulu bila relevan sebelum memberi solusi.'],mentor:['Mentor','Bertindak sebagai mentor: ajukan pertanyaan yang membuat pengguna berpikir, beri umpan balik jujur yang membangun, dorong langkah kecil yang konkret.'],guru:['Guru sabar','Jelaskan seperti guru yang sabar: bertahap dengan contoh sederhana.'],dev:['Programmer','Fokus pada solusi teknis, kode rapi, dan praktik terbaik.'],writer:['Penulis','Gunakan gaya bahasa yang hidup, rapi, dan enak dibaca.'],chill:['Santai','Jawab santai dan singkat, seperti teman.']};
 const PRM0=[['ringkas','Ringkas teks berikut menjadi poin-poin singkat:\n\n'],['terjemah','Terjemahkan teks berikut ke bahasa Inggris dengan natural:\n\n'],['perbaiki','Perbaiki tata bahasa dan ejaan teks berikut tanpa mengubah maknanya:\n\n'],['jelaskan','Jelaskan dengan bahasa sederhana seolah ke pemula, beri satu contoh:\n\n'],['kode','Tulis kode lengkap untuk: '],['debug','Cari bug pada kode berikut dan perbaiki, jelaskan penyebabnya:\n\n'],['email','Tulis email profesional yang sopan untuk: '],['ide','Beri 10 ide kreatif dan unik tentang: '],['artefak','Buat satu file HTML interaktif lengkap (CSS dan JS inline) untuk: '],['rencana','Susun rencana langkah demi langkah beserta estimasi waktu untuk: ']];
 const TZS=[['auto','Otomatis (perangkat)'],['Asia/Jakarta','WIB · Jakarta'],['Asia/Makassar','WITA · Makassar'],['Asia/Jayapura','WIT · Jayapura'],['Asia/Singapore','Singapura'],['Asia/Tokyo','Tokyo'],['Asia/Dubai','Dubai'],['Europe/London','London'],['Europe/Paris','Paris'],['America/New_York','New York'],['America/Los_Angeles','Los Angeles'],['Australia/Sydney','Sydney'],['UTC','UTC']];
 
@@ -755,7 +755,7 @@ const guessTitle=(c,l)=>{const m=c.match(/<title>([^<]{1,50})<\/title>/i);return
 /* ===== AI ===== */
 function projCtx(){const p=cur&&cur.pid&&D.proj.find(x=>x.id==cur.pid);if(!p)return'';let k='';(p.know||[]).forEach(f=>{k+='\n--- '+f.n+' ---\n'+f.t});return '\n\n[Proyek: '+p.name+']'+(p.ins?'\nInstruksi proyek: '+p.ins:'')+(k?'\nPengetahuan proyek:'+k.slice(0,14000):'')}
 async function ask(onTok,extra,mo){
- const s=S(),ef=effCfg(),sys=MODES[cur.mode][1]+(s.art?ARTI:'')+FILEI+(PER[s.persona]&&PER[s.persona][1]?'\n'+PER[s.persona][1]:'')+(s.mem&&s.smem?'\nInfo tentang pengguna: '+s.mem:'')+(s.smem&&D.mems&&D.mems.length?'\nMemori tentang pengguna (pakai bila relevan, jangan menyebut bahwa ini berasal dari memori):'+memText():'')+(s.sys?'\n'+s.sys:'')+(ef.sys?'\n'+ef.sys:'')+(s.inj?'\nWaktu sekarang: '+nowStr()+'.':'')+projCtx()+(extra||''),ms=cur.msgs.slice(-20);
+ const s=S(),ef=effCfg(),sys=MODES[cur.mode][1]+(s.art?ARTI:'')+FILEI+(PER[s.persona]&&PER[s.persona][1]?'\n'+PER[s.persona][1]:'')+(s.mem&&s.smem?'\nInfo tentang pengguna: '+s.mem:'')+(s.smem&&U()&&U().name?'\nNama pengguna: '+U().name+'. Panggil dengan nama hanya sesekali, saat terasa natural.':'')+(s.smem&&D.mems&&D.mems.length?'\nKamu sudah mengenal pengguna lewat hal-hal berikut. Pakai seperti teman yang ingat: hanya bila nyambung dengan pembicaraan, jangan membacakan semuanya, dan jangan menyebut kata memori atau catatan. Sesekali (paling banyak sekali per percakapan) boleh menyambung ke hal itu secara alami bila konteksnya pas, mis. menanyakan kabar proyeknya:'+memText():'')+(s.sys?'\n'+s.sys:'')+(ef.sys?'\n'+ef.sys:'')+(s.inj?'\nWaktu sekarang: '+nowStr()+'.':'')+projCtx()+(extra||''),ms=cur.msgs.slice(-20);
  let vi=-1;ms.forEach((m,i)=>{if(m.img)vi=i});
  let m=MODELS.find(x=>x.id==(mo||s.model))||MODELS[0];
  if(PROM.has(m.id)&&!isPro()){m=MODELS.find(x=>x.id==DEF.model)||MODELS[0];toast('Model Pro tidak tersedia di paket Gratis. Memakai '+m.n)}
@@ -2055,44 +2055,71 @@ function admLogin(o){
  <div class="f hide" id="adK" style="margin-top:14px"><label for="adC">Kode 6 digit</label><input id="adC" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000"></div>
  <div class="btns hide" id="adV"><button class="btn" data-adm="verify">Masuk</button></div>`}
 const q1=(o,s)=>o.querySelector(s);
+const ADDAYS=[[1,'1 hari'],[3,'3 hari'],[7,'7 hari'],[14,'14 hari'],[21,'21 hari'],[30,'30 hari'],[60,'60 hari'],[90,'90 hari'],[120,'120 hari'],[180,'180 hari'],[270,'270 hari'],[365,'1 tahun'],[545,'1,5 tahun'],[730,'2 tahun']];
+let ADROWS=[];
 async function admDraw(o){
  if(!ADM)return admLogin(o);
  const box=q1(o,'#admb');
  box.innerHTML=`<h3>Lisensi Pro</h3><div class="stg" id="adS"></div>
- <div class="f" style="margin-top:14px"><label>Buat kode baru</label><div class="cd" style="flex-wrap:wrap">
- <select id="adD" style="width:auto;flex:1;min-width:100px"><option value="30">30 hari</option><option value="90">90 hari</option><option value="180">180 hari</option><option value="365">1 tahun</option><option value="730">2 tahun</option></select>
- <input id="adN" type="number" min="1" max="20" value="1" aria-label="Jumlah kode" style="width:70px;text-transform:none" title="Jumlah kode">
- <input id="adM" type="number" min="1" max="10" value="3" aria-label="Maks. perangkat" style="width:70px;text-transform:none" title="Maks. perangkat">
- <input id="adT" placeholder="Catatan (nama pembeli)" maxlength="60" style="flex:2;min-width:140px;text-transform:none"></div>
- <p class="hint">Kolom angka: jumlah kode dan maksimal perangkat per kode.</p>
- <div class="btns"><button class="btn sm" data-adm="make">Buat kode</button><button class="ghost" data-adm="list">Segarkan</button><button class="ghost" data-adm="out">Keluar</button></div><div id="adR"></div></div>
- <div id="adL" style="margin-top:10px"><p class="hint">Memuat…</p></div>`;
+ <div class="f" style="margin-top:16px"><label>Buat kode baru</label>
+ <div class="adg"><div><label for="adD">Masa berlaku</label><select id="adD">${ADDAYS.map(x=>`<option value="${x[0]}"${x[0]==30?' selected':''}>${x[1]}</option>`).join('')}<option value="0">Kustom…</option></select></div>
+ <div id="adCW" class="hide"><label for="adCu">Hari (1-730)</label><input id="adCu" type="number" min="1" max="730" value="45" style="text-transform:none"></div>
+ <div><label for="adN">Jumlah kode</label><input id="adN" type="number" min="1" max="20" value="1" style="text-transform:none"></div>
+ <div><label for="adM">Maks. perangkat</label><input id="adM" type="number" min="1" max="10" value="3" style="text-transform:none"></div></div>
+ <label for="adT" style="margin-top:8px">Catatan (nama pembeli)</label><input id="adT" placeholder="Contoh: Budi, via WhatsApp" maxlength="60" style="text-transform:none">
+ <div class="btns" style="margin-top:10px"><button class="btn sm" data-adm="make">Buat kode</button><button class="ghost" data-adm="list">Segarkan</button><button class="ghost" data-adm="csv">Ekspor CSV</button><button class="ghost" data-adm="out">Keluar</button></div><div id="adR"></div></div>
+ <div class="adg" style="margin-top:14px"><div><label for="adQ">Cari kode atau catatan</label><input id="adQ" placeholder="Cari…" style="text-transform:none" autocomplete="off"></div>
+ <div><label for="adF">Tampilkan</label><select id="adF"><option value="all">Semua</option><option value="act">Aktif</option><option value="new">Belum dipakai</option><option value="exp">Kedaluwarsa</option><option value="rev">Dicabut</option></select></div></div>
+ <div id="adL" style="margin-top:8px"><p class="hint">Memuat…</p></div>`;
+ q1(o,'#adD').onchange=e=>q1(o,'#adCW').classList.toggle('hide',e.target.value!='0');
+ q1(o,'#adQ').oninput=()=>admRows(o);q1(o,'#adF').onchange=()=>admRows(o);
  admList(o)}
+const admSt=(r,now)=>r.rev?'rev':!r.exp?'new':r.exp<now?'exp':'act';
+function admRows(o){
+ const now=Date.now(),qy=(q1(o,'#adQ').value||'').toLowerCase().trim(),f=q1(o,'#adF').value;
+ const rows=ADROWS.filter(r=>(f=='all'||admSt(r,now)==f)&&(!qy||(r.code+' '+(r.note||'')).toLowerCase().includes(qy)));
+ q1(o,'#adL').innerHTML=rows.length?rows.map(r=>{const k=admSt(r,now),st=k=='rev'?'Dicabut':k=='new'?'Belum dipakai · '+r.d+' hari':k=='exp'?'Kedaluwarsa '+dateStr(r.exp):'Aktif sampai '+dateStr(r.exp)+' · '+r.devs+'/'+r.max+' perangkat';
+  const c=esc(r.code);
+  return `<div class="lrow"><code>${c}</code><span class="hint">${esc(r.note?r.note+' · ':'')+st}</span><div class="lact"><button class="ghost" data-adm="cp" data-c="${c}">Salin</button><button class="ghost" data-adm="ext" data-c="${c}">Perpanjang</button><button class="ghost" data-adm="note" data-c="${c}" data-n="${esc(r.note||'')}">Catatan</button>${r.devs?`<button class="ghost" data-adm="rst" data-c="${c}">Reset perangkat</button>`:''}${r.rev?`<button class="ghost" data-adm="res" data-c="${c}">Aktifkan lagi</button>`:`<button class="ghost" data-adm="rev" data-c="${c}">Cabut</button>`}<button class="ghost" data-adm="del" data-c="${c}">Hapus</button></div></div>`}).join(''):'<p class="hint">Tidak ada kode yang cocok.</p>'}
 async function admList(o){
  try{
-  const j=await admPro({action:'list'}),now=Date.now(),rows=j.rows||[];
-  const act=rows.filter(r=>!r.rev&&r.exp>now).length,free=rows.filter(r=>!r.rev&&!r.exp).length,rev=rows.filter(r=>r.rev).length;
-  q1(o,'#adS').innerHTML=[[rows.length,'kode'],[act,'aktif'],[free,'belum dipakai'],[rev,'dicabut']].map(x=>`<div class="stc"><b>${x[0]}</b><span class="hint">${x[1]}</span></div>`).join('');
-  q1(o,'#adL').innerHTML=rows.length?rows.map(r=>{const st=r.rev?'Dicabut':!r.exp?'Belum dipakai · '+r.d+' hari':r.exp<now?'Kedaluwarsa':'Aktif sampai '+dateStr(r.exp)+' · '+r.devs+'/'+r.max+' perangkat';
-   return `<div class="lrow"><code>${esc(r.code)}</code><span class="hint">${esc(r.note?r.note+' · ':'')+st}</span>${r.rev?'':`<button class="ghost" data-adm="rev" data-c="${esc(r.code)}">Cabut</button>`}</div>`}).join(''):'<p class="hint">Belum ada kode.</p>'}
+  const j=await admPro({action:'list'}),now=Date.now();ADROWS=j.rows||[];
+  const n=k=>ADROWS.filter(r=>admSt(r,now)==k).length,dv=ADROWS.filter(r=>!r.rev&&r.exp>now).reduce((a,r)=>a+r.devs,0);
+  q1(o,'#adS').innerHTML=[[ADROWS.length,'kode'],[n('act'),'aktif'],[n('new'),'belum dipakai'],[n('exp'),'kedaluwarsa'],[n('rev'),'dicabut'],[dv,'perangkat aktif']].map(x=>`<div class="stc"><b>${x[0]}</b><span class="hint">${x[1]}</span></div>`).join('');
+  admRows(o)}
  catch(e){toast(e.message);if(!ADM)admLogin(o)}}
 async function admDo(d,el,o){
  el.disabled=true;
+ const c=el.dataset.c;
  try{
   if(d=='send'){
    const em=q1(o,'#adE').value.trim();if(!em)return toast('Isi email admin');
    ADT=await admPost(ADMAPI,{action:'send',email:em});ADT.email=em;
    q1(o,'#adK').classList.remove('hide');q1(o,'#adV').classList.remove('hide');q1(o,'#adC').focus();toast('Jika email itu admin, kode sudah dikirim')}
   else if(d=='verify'){
-   const c=q1(o,'#adC').value.trim();if(!ADT)return toast('Kirim kode dulu');if(!/^\d{6}$/.test(c))return toast('Kode 6 digit');
-   const j=await admPost(ADMAPI,{action:'verify',email:ADT.email,code:c,token:ADT.token,exp:ADT.exp});admSet(j.session);ADT=null;admDraw(o)}
+   const cd=q1(o,'#adC').value.trim();if(!ADT)return toast('Kirim kode dulu');if(!/^\d{6}$/.test(cd))return toast('Kode 6 digit');
+   const j=await admPost(ADMAPI,{action:'verify',email:ADT.email,code:cd,token:ADT.token,exp:ADT.exp});admSet(j.session);ADT=null;admDraw(o)}
   else if(d=='make'){
-   const j=await admPro({action:'create',days:+q1(o,'#adD').value,count:+q1(o,'#adN').value||1,max:+q1(o,'#adM').value||3,note:q1(o,'#adT').value});
+   let days=+q1(o,'#adD').value;if(!days)days=Math.min(730,Math.max(1,+q1(o,'#adCu').value||0));
+   if(!days)return toast('Isi jumlah hari');
+   const j=await admPro({action:'create',days,count:+q1(o,'#adN').value||1,max:+q1(o,'#adM').value||3,note:q1(o,'#adT').value});
    q1(o,'#adR').innerHTML=`<div class="codes" id="adCodes">${esc(j.codes.join('\n'))}</div><button class="ghost" data-adm="copy" style="margin-top:6px">Salin semua</button>`;admList(o)}
   else if(d=='copy'){navigator.clipboard.writeText(q1(o,'#adCodes').textContent);toast('Kode disalin')}
+  else if(d=='cp'){navigator.clipboard.writeText(c);toast('Kode disalin')}
   else if(d=='list')await admList(o);
-  else if(d=='rev'){if(!confirm('Cabut kode '+el.dataset.c+'? Pemakainya kehilangan Pro dalam beberapa hari.'))return;await admPro({action:'revoke',code:el.dataset.c});await admList(o)}
+  else if(d=='csv'){
+   const now=Date.now(),q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+   const rows=[['kode','status','catatan','hari','berakhir','perangkat','maks_perangkat'].join(',')].concat(ADROWS.map(r=>[r.code,admSt(r,now),r.note,r.d,r.exp?new Date(r.exp).toISOString().slice(0,10):'',r.devs,r.max].map(q).join(',')));
+   dlBlob(new Blob(['﻿'+rows.join('\n')],{type:'text/csv'}),'lisensi-auralis.csv')}
   else if(d=='out'){try{await admPost(ADMAPI,{action:'logout'},{'x-admin-session':ADM})}catch(e){}admSet(null);admLogin(o)}
+  else{
+   if(d=='rev'){if(!confirm('Cabut kode '+c+'? Pemakainya kehilangan Pro dalam beberapa hari.'))return;await admPro({action:'revoke',code:c})}
+   else if(d=='res')await admPro({action:'restore',code:c});
+   else if(d=='rst'){if(!confirm('Reset daftar perangkat untuk '+c+'? Perangkat bisa mendaftar ulang.'))return;await admPro({action:'reset',code:c})}
+   else if(d=='del'){if(!confirm('Hapus kode '+c+' permanen?'))return;await admPro({action:'delete',code:c})}
+   else if(d=='ext'){const v=prompt('Tambah berapa hari untuk '+c+'? (1-3650)','30');if(!v)return;const n=Math.round(+v);if(!(n>=1&&n<=3650))return toast('Isi angka 1 sampai 3650');await admPro({action:'extend',code:c,days:n});toast('Diperpanjang '+n+' hari')}
+   else if(d=='note'){const v=prompt('Catatan untuk '+c,el.dataset.n||'');if(v===null)return;await admPro({action:'note',code:c,note:v})}
+   await admList(o)}
  }catch(e){toast(e.message)}
  finally{if(el.isConnected)el.disabled=false}}
 function admHash(){if(location.hash=='#admin'){history.replaceState(null,'',location.pathname+location.search);admOpen()}}
