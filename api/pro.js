@@ -91,7 +91,7 @@ export default async function handler(req) {
       }
       await kv(['SET', key, JSON.stringify(lic)]);
       const te = Math.min(lic.exp, now + TOKEN_DAYS * 864e5);
-      return J({ ok: true, token: await sign({ p: 'pro', e: te, c: code.slice(4, 8) }), te, exp: lic.exp });
+      return J({ ok: true, token: await sign({ p: 'pro', e: te, c: code.slice(4, 12) }), te, exp: lic.exp });
     }
 
     // ---- penjual ----
@@ -109,7 +109,7 @@ export default async function handler(req) {
       return J({ ok: true, codes: out, days });
     }
     if (b.action === 'list') {
-      const ids = ((await kv(['SMEMBERS', 'auralis:lic:index'])) || []).slice(-100), rows = [];
+      const ids = ((await kv(['SMEMBERS', 'auralis:lic:index'])) || []).slice(-300), rows = [];
       for (const c of ids) {
         const raw = await kv(['GET', 'auralis:lic:' + c]); if (!raw) continue;
         const l = JSON.parse(raw);
@@ -123,6 +123,21 @@ export default async function handler(req) {
       if (!raw) return E('Kode tidak ditemukan', 404);
       const l = JSON.parse(raw); l.rev = true; await kv(['SET', key, JSON.stringify(l)]);
       return J({ ok: true });
+    }
+    if (['extend', 'restore', 'reset', 'delete', 'note'].includes(b.action)) {
+      const code = norm(b.code), key = 'auralis:lic:' + code, raw = await kv(['GET', key]);
+      if (!raw) return E('Kode tidak ditemukan', 404);
+      const l = JSON.parse(raw), now = Date.now();
+      if (b.action === 'delete') { await kv(['DEL', key]); await kv(['SREM', 'auralis:lic:index', code]); return J({ ok: true }); }
+      if (b.action === 'restore') l.rev = false;
+      if (b.action === 'reset') l.devs = [];
+      if (b.action === 'note') l.note = String(b.note || '').slice(0, 60);
+      if (b.action === 'extend') {
+        const days = Math.min(Math.max(Math.round(+b.days) || 0, 1), 3650);
+        if (l.exp) l.exp = Math.max(l.exp, now) + days * 864e5; else l.d = (l.d || 0) + days;
+      }
+      await kv(['SET', key, JSON.stringify(l)]);
+      return J({ ok: true, exp: l.exp || 0, d: l.d });
     }
     return E('Aksi tidak dikenal', 400);
   } catch {
