@@ -44,17 +44,21 @@ async function pickModel(m, gwKey) {
 const PRO_SECRET = (process.env.PRO_SECRET || '').trim();
 const _enc = new TextEncoder();
 const _unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-async function isPro(req) {
-  if (!PRO_SECRET) return true;
+async function licInfo(req) {
+  if (!PRO_SECRET) return null;
   const t = req.headers.get('x-license') || '';
   const [body, sig] = t.split('.');
-  if (!body || !sig) return false;
+  if (!body || !sig) return null;
   try {
     const k = await crypto.subtle.importKey('raw', _enc.encode(PRO_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
-    if (!(await crypto.subtle.verify('HMAC', k, _unb64u(sig), _enc.encode(body)))) return false;
+    if (!(await crypto.subtle.verify('HMAC', k, _unb64u(sig), _enc.encode(body)))) return null;
     const p = JSON.parse(new TextDecoder().decode(_unb64u(body)));
-    return p.p === 'pro' && p.e > Date.now();
-  } catch { return false; }
+    return p.p === 'pro' && p.e > Date.now() ? p : null;
+  } catch { return null; }
+}
+async function isPro(req) {
+  if (!PRO_SECRET) return true;
+  return !!(await licInfo(req));
 }
 const PRO_ERR = { error: { message: 'Fitur ini khusus Pro. Buka menu Atur > Langganan untuk upgrade.', code: 'pro_required' } };
 
@@ -62,24 +66,47 @@ const PRO_MODELS = new Set((process.env.PRO_MODELS || 'claude-opus-5-5,claude-so
 
 const KV_URL = (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '').trim().replace(/\/+$/, '');
 const KV_TOKEN = (process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '').trim();
-const FREE_DAILY = +process.env.FREE_DAILY_SERVER || 60; // batas cadangan per IP/hari untuk paket Gratis (lebih longgar dari batas di aplikasi)
 async function kvCmd(cmd) {
   const r = await fetch(KV_URL, { method: 'POST', headers: { authorization: 'Bearer ' + KV_TOKEN, 'content-type': 'application/json' }, body: JSON.stringify(cmd) });
   if (!r.ok) throw new Error('kv');
   return (await r.json()).result;
 }
-async function overQuota(req, ip) {
-  if (!PRO_SECRET || !KV_URL || !KV_TOKEN || (await isPro(req))) return false;
+// Batas token per 6 jam (perkiraan: 1 token per 4 karakter). Pro dihitung per lisensi, Gratis per IP.
+const TOK_FREE = +process.env.TOKEN_LIMIT_FREE || 15000, TOK_PRO = +process.env.TOKEN_LIMIT_PRO || 50000, TOK_WIN = 6 * 3600;
+const estTok = s => Math.ceil(String(s || '').length / 4);
+async function tokState(req, ip) {
+  if (!PRO_SECRET || !KV_URL || !KV_TOKEN) return null;
   try {
-    const day = new Date(Date.now() + 7 * 36e5).toISOString().slice(0, 10);
-    const h = new Uint8Array(await crypto.subtle.digest('SHA-256', _enc.encode(ip)));
-    const k = 'auralis:q:' + day + ':' + [...h.slice(0, 10)].map(x => x.toString(16).padStart(2, '0')).join('');
-    const n = await kvCmd(['INCR', k]);
-    if (n === 1) await kvCmd(['EXPIRE', k, 172800]);
-    return n > FREE_DAILY;
-  } catch { return false; }
+    const lic = await licInfo(req), who = lic ? 'L' + String(lic.c || lic.e) : 'I' + ip;
+    const h = new Uint8Array(await crypto.subtle.digest('SHA-256', _enc.encode(who)));
+    const key = 'auralis:tk:' + [...h.slice(0, 12)].map(x => x.toString(16).padStart(2, '0')).join('');
+    const limit = lic ? TOK_PRO : TOK_FREE;
+    const used = +(await kvCmd(['GET', key])) || 0;
+    const ttl = used ? await kvCmd(['PTTL', key]) : -2;
+    return { key, limit, used, reset: ttl > 0 ? ttl : TOK_WIN * 1000 };
+  } catch { return null; }
 }
-
+async function tokAdd(st, n) {
+  if (!st || !(n > 0)) return;
+  try {
+    const r = await kvCmd(['INCRBY', st.key, Math.round(n)]);
+    if (r === Math.round(n)) await kvCmd(['EXPIRE', st.key, TOK_WIN]);
+  } catch {}
+}
+function countStream(src, st) {
+  const dec = new TextDecoder(); let carry = '', chars = 0, pend = 0;
+  const re = /"(?:content|reasoning_content|reasoning)":"((?:[^"\\]|\\.)*)"/g;
+  return src.pipeThrough(new TransformStream({
+    async transform(chunk, ctl) {
+      ctl.enqueue(chunk);
+      const t = carry + dec.decode(chunk, { stream: true }), cut = t.lastIndexOf('\n');
+      const use = cut >= 0 ? t.slice(0, cut) : ''; carry = cut >= 0 ? t.slice(cut + 1) : t;
+      let m; re.lastIndex = 0; while ((m = re.exec(use))) chars += m[1].length;
+      if (chars - pend > 4000) { const d = chars - pend; pend = chars; await tokAdd(st, d / 4); }
+    },
+    async flush() { if (carry) { let m; re.lastIndex = 0; while ((m = re.exec(carry))) chars += m[1].length; } await tokAdd(st, (chars - pend) / 4); },
+  }));
+}
 const hits = new Map();
 function limited(ip) {
   const now = Date.now(), LIM = +process.env.RATE_LIMIT || 30, WIN = 10 * 60e3;
@@ -141,6 +168,7 @@ export default async function handler(req) {
   const cors = {
     'access-control-allow-origin': ok && origin ? origin : own,
     'access-control-allow-headers': 'content-type,x-license',
+    'access-control-expose-headers': 'x-tok-used,x-tok-limit,x-tok-reset',
     'access-control-allow-methods': 'GET,POST,OPTIONS',
     vary: 'origin',
   };
@@ -175,6 +203,11 @@ export default async function handler(req) {
       } catch (e) { out.test_error = String(e); }
       return J(out);
     }
+    if (u.searchParams.get('usage') === '1') {
+      if (limited(ip)) return J({ error: 'Terlalu banyak permintaan' }, 429);
+      const st = await tokState(req, ip);
+      return J(st ? { on: true, used: st.used, limit: st.limit, reset: st.reset } : { on: false });
+    }
     if (u.searchParams.get('models') === '1') {
       return J({ models: gwKey ? await gwModels(gwKey) : [] });
     }
@@ -206,7 +239,12 @@ export default async function handler(req) {
   const needPro = PRO_MODELS.has(body.model) || (pm.dyn && !FREE_M.includes(body.model));
   if (needPro && !(await isPro(req))) return J({ error: { message: 'Model ini khusus Pro. Buka menu Atur > Langganan untuk upgrade.', code: 'pro_required' } }, 402);
 
-  if (await overQuota(req, ip)) return J({ error: { message: 'Batas harian paket Gratis tercapai. Upgrade ke Pro untuk tanpa batas.', code: 'quota' } }, 429);
+  const tk = await tokState(req, ip);
+  if (tk && tk.used >= tk.limit) {
+    const mnt = Math.ceil(tk.reset / 60000);
+    return J({ error: { message: 'Batas ' + tk.limit.toLocaleString('id-ID') + ' token tercapai. Reset dalam ' + Math.floor(mnt / 60) + ' jam ' + (mnt % 60) + ' menit.', code: 'quota' }, used: tk.used, limit: tk.limit, reset: tk.reset }, 429);
+  }
+  const inTok = estTok(JSON.stringify(b.messages).replace(/data:[^"]{200,}/g, 'x')) + (JSON.stringify(b.messages).includes('image_url') ? 800 : 0);
 
   let r;
   const callGw = () => fetch(GW_URL, {
@@ -221,9 +259,12 @@ export default async function handler(req) {
     if (r.status === 400 && b.max_tokens && body.max_tokens) { delete body.max_tokens; r = await callGw(); }
   } catch { return J({ error: { message: 'Gateway tidak bisa dihubungi' } }, 502); }
 
-  const convert = an && r.ok && r.body;
-  return new Response(convert ? toAnthropicStream(r.body) : r.body, {
+  let src = r.body;
+  const extra = {};
+  if (tk && r.ok && src) { await tokAdd(tk, inTok); src = countStream(src, tk); extra['x-tok-used'] = String(tk.used + inTok); extra['x-tok-limit'] = String(tk.limit); extra['x-tok-reset'] = String(tk.reset); }
+  const convert = an && r.ok && src;
+  return new Response(convert ? toAnthropicStream(src) : src, {
     status: r.status,
-    headers: { ...cors, 'content-type': convert ? 'text/event-stream' : (r.headers.get('content-type') || 'text/event-stream'), 'cache-control': 'no-store' },
+    headers: { ...cors, ...extra, 'content-type': convert ? 'text/event-stream' : (r.headers.get('content-type') || 'text/event-stream'), 'cache-control': 'no-store' },
   });
 }
