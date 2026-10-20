@@ -1,5 +1,5 @@
 // Vercel Edge Function: langganan Pro (kode lisensi). Letakkan sebagai api/pro.js
-// Env wajib: PRO_SECRET (teks acak panjang, untuk tanda tangan token), PRO_ADMIN_KEY (kata sandi penjual),
+// Env wajib: PRO_SECRET (teks acak panjang, untuk tanda tangan token), PRO_ADMIN_KEY (opsional, kata sandi cadangan; admin utama masuk lewat kode email, lihat api/admin.js),
 //            KV_REST_API_URL + KV_REST_API_TOKEN (Upstash, sama seperti sinkron).
 // Env tampilan: PRO_PAY_URL (tautan bayar: Saweria/Trakteer/Lynk/Midtrans/dll), PRO_CONTACT (mis. https://wa.me/62812xxxx untuk kirim bukti bayar),
 //               PRO_PLANS (opsional, JSON: [{"d":30,"n":"Pro 30 hari","p":"Rp29.000"},{"d":365,"n":"Pro 1 tahun","p":"Rp249.000"}]).
@@ -30,6 +30,18 @@ const norm = c => String(c || '').toUpperCase().replace(/[^A-Z2-7]/g, '');
 const fmt = n => (n.match(/.{1,4}/g) || []).join('-');
 function newCode() { const r = crypto.getRandomValues(new Uint8Array(12)); return 'AURA' + [...r].map(x => B32[x % 32]).join(''); }
 
+// Admin: sesi dari api/admin.js (verifikasi kode email), atau kata sandi lama PRO_ADMIN_KEY bila masih diisi (opsional, boleh dihapus).
+async function adminOk(req) {
+  const k = String(req.headers.get('x-admin') || '');
+  if (ADMIN && k && same(k, ADMIN)) return true;
+  const s = String(req.headers.get('x-admin-session') || '');
+  if (!/^[0-9a-f]{64}$/.test(s)) return false;
+  try {
+    const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
+    return !!(await kv(['GET', 'auralis:adm:' + h]));
+  } catch { return false; }
+}
+
 const hits = new Map();
 function limited(key, LIM) {
   const now = Date.now(), WIN = 10 * 60e3, a = (hits.get(key) || []).filter(t => now - t < WIN);
@@ -41,13 +53,13 @@ export default async function handler(req) {
   const origin = req.headers.get('origin') || '', own = new URL(req.url).origin;
   const allow = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
   const ok = !origin || origin === own || allow.includes(origin);
-  const cors = { 'access-control-allow-origin': ok && origin ? origin : own, 'access-control-allow-headers': 'content-type,x-admin', 'access-control-allow-methods': 'GET,POST,OPTIONS', vary: 'origin' };
+  const cors = { 'access-control-allow-origin': ok && origin ? origin : own, 'access-control-allow-headers': 'content-type,x-admin,x-admin-session', 'access-control-allow-methods': 'GET,POST,OPTIONS', vary: 'origin' };
   const J = (o, st = 200) => new Response(JSON.stringify(o), { status: st, headers: { ...cors, 'content-type': 'application/json', 'cache-control': 'no-store' } });
   const E = (m, st) => J({ error: { message: m } }, st);
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
   if (!ok) return E('Origin tidak diizinkan', 403);
 
-  const enabled = !!(SECRET && ADMIN && KV_URL && KV_TOKEN);
+  const enabled = !!(SECRET && KV_URL && KV_TOKEN);
   if (req.method === 'GET') {
     let plans = [];
     try { plans = JSON.parse(process.env.PRO_PLANS || '[]').slice(0, 4).map(x => ({ d: +x.d || 30, n: String(x.n || 'Pro').slice(0, 40), p: String(x.p || '').slice(0, 30) })); } catch { plans = []; }
@@ -84,7 +96,7 @@ export default async function handler(req) {
 
     // ---- penjual ----
     if (limited('a' + ip, 40)) return E('Terlalu banyak permintaan', 429);
-    if (!same(String(req.headers.get('x-admin') || ''), ADMIN)) return E('Kata sandi penjual salah', 403);
+    if (!(await adminOk(req))) return E('Akses admin ditolak. Masuk lewat panel admin.', 403);
     if (b.action === 'create') {
       const days = Math.min(Math.max(+b.days || 30, 1), 3650), count = Math.min(Math.max(+b.count || 1, 1), 20), max = Math.min(Math.max(+b.max || 3, 1), 10), note = String(b.note || '').slice(0, 60);
       const out = [];
