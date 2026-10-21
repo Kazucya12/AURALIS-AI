@@ -25,7 +25,7 @@ let MC = { t: 0, ids: [] };
 async function gwModels(gwKey) {
   if (Date.now() - MC.t < 6e5 && MC.ids.length) return MC.ids;
   try {
-    const r = await fetch(GW_URL.replace(/\/chat\/completions$/, '') + '/models', { headers: { authorization: 'Bearer ' + gwKey } });
+    const r = await fetch(GW_URL.replace(/\/chat\/completions$/, '') + '/models', { headers: { authorization: 'Bearer ' + gwKey }, signal: AbortSignal.timeout(8000) });
     const j = await r.json();
     const ids = (j.data || j.models || []).map(x => (typeof x === 'string' ? x : x && x.id)).filter(x => typeof x === 'string' && x.length < 80);
     if (ids.length) MC = { t: Date.now(), ids };
@@ -187,8 +187,9 @@ export default async function handler(req) {
       if (!gwKey) return J({ error: 'QWEN_API_KEY kosong di server' });
       const out = { gateway_url: GW_URL, default_model: DEFAULT_GW_MODEL, extra_models: EXTRA };
       const auth = { authorization: 'Bearer ' + gwKey };
+      const t0 = Date.now();
       try {
-        const m = await fetch(GW_URL.replace(/\/chat\/completions$/, '') + '/models', { headers: auth });
+        const m = await fetch(GW_URL.replace(/\/chat\/completions$/, '') + '/models', { headers: auth, signal: AbortSignal.timeout(8000) });
         const t = await m.text();
         out.models_status = m.status;
         try { out.models = JSON.parse(t).data.map(x => x.id); } catch { out.models_raw = t.slice(0, 300); }
@@ -198,9 +199,11 @@ export default async function handler(req) {
         const c = await fetch(GW_URL, {
           method: 'POST', headers: { 'content-type': 'application/json', ...auth },
           body: JSON.stringify({ model, messages: [{ role: 'user', content: 'halo' }], max_tokens: 20 }),
+          signal: AbortSignal.timeout(15000),
         });
         out.test_model = model; out.test_status = c.status; out.test_reply = (await c.text()).slice(0, 400);
       } catch (e) { out.test_error = String(e); }
+      out.elapsed_ms = Date.now() - t0;
       return J(out);
     }
     if (u.searchParams.get('usage') === '1') {
@@ -246,25 +249,54 @@ export default async function handler(req) {
   }
   const inTok = estTok(JSON.stringify(b.messages).replace(/data:[^"]{200,}/g, 'x')) + (JSON.stringify(b.messages).includes('image_url') ? 800 : 0);
 
-  let r;
   const callGw = () => fetch(GW_URL, {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: 'Bearer ' + gwKey },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(280000),
   });
-  try {
-    r = await callGw();
-    // Beberapa model menolak parameter upaya: coba lagi tanpa reasoning_effort, lalu tanpa max_tokens
-    if (r.status === 400 && body.reasoning_effort) { delete body.reasoning_effort; r = await callGw(); }
-    if (r.status === 400 && b.max_tokens && body.max_tokens) { delete body.max_tokens; r = await callGw(); }
-  } catch { return J({ error: { message: 'Gateway tidak bisa dihubungi' } }, 502); }
 
-  let src = r.body;
+  // --- Anti-504: kembalikan stream SEGERA (batas Edge 25 dtk hanya sampai byte pertama),
+  // lalu kirim ": ping" berkala selagi menunggu gateway/model mulai menulis. ---
+  const enc = new TextEncoder();
+  const out = new TransformStream();
+  const w = out.writable.getWriter();
+  const put = s => w.write(enc.encode(s));
+  const fail = msg => an
+    ? put('event: error\ndata: ' + JSON.stringify({ type: 'error', error: { type: 'api_error', message: msg } }) + '\n\n')
+    : put('data: ' + JSON.stringify({ error: { message: msg } }) + '\n\n');
+
+  (async () => {
+    const ping = setInterval(() => put(': ping\n\n').catch(() => {}), 8000);
+    let rd;
+    try {
+      await put(': start\n\n');
+      let r = await callGw();
+      // Beberapa model menolak parameter upaya: coba lagi tanpa reasoning_effort, lalu tanpa max_tokens
+      if (r.status === 400 && body.reasoning_effort) { delete body.reasoning_effort; r = await callGw(); }
+      if (r.status === 400 && b.max_tokens && body.max_tokens) { delete body.max_tokens; r = await callGw(); }
+      if (!r.ok || !r.body) {
+        let t = ''; try { t = (await r.text()).slice(0, 300); } catch {}
+        let msg = 'Gateway error ' + r.status; try { msg = JSON.parse(t).error.message || msg; } catch { if (t) msg += ': ' + t; }
+        await fail(msg);
+      } else {
+        let src = r.body;
+        if (tk) { await tokAdd(tk, inTok); src = countStream(src, tk); }
+        if (an) src = toAnthropicStream(src);
+        rd = src.getReader();
+        for (;;) { const { done, value } = await rd.read(); if (done) break; await w.write(value); }
+      }
+    } catch (e) {
+      const timeout = e && (e.name === 'TimeoutError' || e.name === 'AbortError');
+      await fail(timeout ? 'Model terlalu lama merespons. Coba model yang lebih cepat atau permintaan lebih singkat.' : 'Gateway tidak bisa dihubungi').catch(() => {});
+      try { rd && rd.cancel(); } catch {}
+    } finally { clearInterval(ping); w.close().catch(() => {}); }
+  })();
+
   const extra = {};
-  if (tk && r.ok && src) { await tokAdd(tk, inTok); src = countStream(src, tk); extra['x-tok-used'] = String(tk.used + inTok); extra['x-tok-limit'] = String(tk.limit); extra['x-tok-reset'] = String(tk.reset); }
-  const convert = an && r.ok && src;
-  return new Response(convert ? toAnthropicStream(src) : src, {
-    status: r.status,
-    headers: { ...cors, ...extra, 'content-type': convert ? 'text/event-stream' : (r.headers.get('content-type') || 'text/event-stream'), 'cache-control': 'no-store' },
+  if (tk) { extra['x-tok-used'] = String(tk.used + inTok); extra['x-tok-limit'] = String(tk.limit); extra['x-tok-reset'] = String(tk.reset); }
+  return new Response(out.readable, {
+    status: 200,
+    headers: { ...cors, ...extra, 'content-type': 'text/event-stream', 'cache-control': 'no-store, no-transform', 'x-accel-buffering': 'no' },
   });
 }
