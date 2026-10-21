@@ -91,18 +91,18 @@ export default async function handler(req) {
       }
       await kv(['SET', key, JSON.stringify(lic)]);
       const te = Math.min(lic.exp, now + TOKEN_DAYS * 864e5);
-      return J({ ok: true, token: await sign({ p: 'pro', e: te, c: code.slice(4, 12) }), te, exp: lic.exp });
+      return J({ ok: true, q: lic.q || 0, token: await sign({ p: 'pro', e: te, c: code.slice(4, 12), q: lic.q || 0 }), te, exp: lic.exp });
     }
 
     // ---- penjual ----
     if (limited('a' + ip, 40)) return E('Terlalu banyak permintaan', 429);
     if (!(await adminOk(req))) return E('Akses admin ditolak. Masuk lewat panel admin.', 403);
     if (b.action === 'create') {
-      const days = Math.min(Math.max(+b.days || 30, 1), 3650), count = Math.min(Math.max(+b.count || 1, 1), 20), max = Math.min(Math.max(+b.max || 3, 1), 10), note = String(b.note || '').slice(0, 60);
+      const days = Math.min(Math.max(+b.days || 30, 1), 3650), count = Math.min(Math.max(+b.count || 1, 1), 20), max = Math.min(Math.max(+b.max || 3, 1), 10), note = String(b.note || '').slice(0, 60), q = [2, 3, 4].includes(+b.q) ? +b.q * 1e6 : 0;
       const out = [];
       for (let i = 0; i < count; i++) {
         const c = newCode();
-        await kv(['SET', 'auralis:lic:' + c, JSON.stringify({ d: days, max, note, made: Date.now(), devs: [], exp: 0, rev: false })]);
+        await kv(['SET', 'auralis:lic:' + c, JSON.stringify({ d: days, max, note, q, made: Date.now(), devs: [], exp: 0, rev: false })]);
         await kv(['SADD', 'auralis:lic:index', c]);
         out.push(fmt(c));
       }
@@ -113,7 +113,7 @@ export default async function handler(req) {
       for (const c of ids) {
         const raw = await kv(['GET', 'auralis:lic:' + c]); if (!raw) continue;
         const l = JSON.parse(raw);
-        rows.push({ code: fmt(c), d: l.d, note: l.note || '', made: l.made || 0, act: l.act || 0, exp: l.exp || 0, devs: (l.devs || []).length, max: l.max || 3, rev: !!l.rev });
+        rows.push({ code: fmt(c), q: l.q || 0, d: l.d, note: l.note || '', made: l.made || 0, act: l.act || 0, exp: l.exp || 0, devs: (l.devs || []).length, max: l.max || 3, rev: !!l.rev });
       }
       rows.sort((a, c) => c.made - a.made);
       return J({ ok: true, rows });
@@ -124,13 +124,14 @@ export default async function handler(req) {
       const l = JSON.parse(raw); l.rev = true; await kv(['SET', key, JSON.stringify(l)]);
       return J({ ok: true });
     }
-    if (['extend', 'restore', 'reset', 'delete', 'note'].includes(b.action)) {
+    if (['extend', 'restore', 'reset', 'delete', 'note', 'storage'].includes(b.action)) {
       const code = norm(b.code), key = 'auralis:lic:' + code, raw = await kv(['GET', key]);
       if (!raw) return E('Kode tidak ditemukan', 404);
       const l = JSON.parse(raw), now = Date.now();
       if (b.action === 'delete') { await kv(['DEL', key]); await kv(['SREM', 'auralis:lic:index', code]); return J({ ok: true }); }
       if (b.action === 'restore') l.rev = false;
       if (b.action === 'reset') l.devs = [];
+      if (b.action === 'storage') l.q = [2, 3, 4].includes(+b.q) ? +b.q * 1e6 : 0;
       if (b.action === 'note') l.note = String(b.note || '').slice(0, 60);
       if (b.action === 'extend') {
         const days = Math.min(Math.max(Math.round(+b.days) || 0, 1), 3650);
