@@ -263,7 +263,7 @@ a.cite{display:inline-block;min-width:1.35em;text-align:center;font-size:.7em;li
 .pl{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd)}.pl b{color:var(--ac)}
 .cd{display:flex;gap:8px}.cd input{font-family:var(--cf);letter-spacing:.04em;text-transform:uppercase}
 .sell summary{cursor:pointer;color:var(--mu);font-size:.85em;margin-top:18px}.sell .cd{margin-top:8px;flex-wrap:wrap}.sell select,.sell input{width:auto;flex:1;min-width:90px}
-.adg{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}.adg label{display:block;font-size:.8em;color:var(--mu)}.adg label,#admb .f>label+.adg{margin-bottom:4px}.adg input,.adg select{width:100%}.lrow{flex-wrap:wrap}.lact{display:flex;gap:6px;flex-wrap:wrap;width:100%;padding-bottom:6px}.lact .ghost{padding:5px 10px;font-size:.92em}.codes{font-family:var(--cf);font-size:.85em;white-space:pre-wrap;background:var(--s2);padding:10px;border-radius:10px;border:1px solid var(--bd);user-select:all;margin-top:8px}
+.adg{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}.adg label{display:block;font-size:.8em;color:var(--mu)}.adg label,#admb .f>label+.adg{margin-bottom:4px}.adg input,.adg select{width:100%}.lrow{flex-wrap:wrap}.lact{display:flex;gap:6px;flex-wrap:wrap;width:100%;padding-bottom:6px}.lact .ghost{padding:5px 10px;font-size:.92em}.sg{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.sg button{background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:999px;padding:6px 12px;font-size:.84em;cursor:pointer;text-align:left;transition:border-color .15s,transform .15s}.sg button:hover{border-color:var(--ac)}.sg button:active{transform:scale(.97)}.ms{display:block;color:var(--mu);font-size:.78em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}.ms mark{background:none;color:var(--ac)}.codes{font-family:var(--cf);font-size:.85em;white-space:pre-wrap;background:var(--s2);padding:10px;border-radius:10px;border:1px solid var(--bd);user-select:all;margin-top:8px}
 .lrow{display:flex;gap:8px;align-items:center;font-size:.8em;padding:6px 0;border-bottom:1px solid var(--bd)}.lrow code{font-family:var(--cf);flex:1}.lrow .hint{white-space:nowrap}
 .m.u .acts{opacity:0;justify-content:flex-end;transition:opacity .15s}.m.u:hover .acts,.m.u:focus-within .acts{opacity:1}.m.u .ts{text-align:right}@media(hover:none){.m.u .acts{opacity:.7}}
 .mtr{width:100%;text-align:left;padding:8px 2px 2px;font-size:.8em}.mtr span{display:flex;justify-content:space-between;color:var(--mu)}.mtr em{font-style:normal}.mtr b{color:var(--tx)}.mtr i{display:block;height:5px;border-radius:99px;background:var(--s2);margin:6px 0 4px;overflow:hidden}.mtr u{display:block;height:100%;width:0;border-radius:99px;background:var(--ac);transition:width .5s cubic-bezier(.2,.9,.3,1),background-color .3s}.mtr.warn u{background:var(--er)}.mtr.warn b{color:var(--er)}.mtr small{color:var(--mu);font-size:.95em}
@@ -361,7 +361,7 @@ a.cite{display:inline-block;min-width:1.35em;text-align:center;font-size:.7em;li
 <div id="sact" class="hide"></div>
 <div id="list"></div>
 <button class="mtr hide" id="meter" aria-label="Pemakaian token"><span><em>Token (reset 6 jam)</em><b></b></span><i><u></u></i><small></small></button>
-<button class="upg hide" id="upg"><b>Buka Pro</b><small>Tanpa batas pesan, semua model, sinkron</small></button>
+<button class="upg hide" id="upg"><b>Buka Pro</b><small>50.000 token per 6 jam, semua model, sinkron</small></button>
 <div class="me"><div class="av" id="mav"></div><div><b id="mnm"></b><span class="plan hide" id="plan">Pro</span><small id="mem"></small></div><button class="ib sm hide" id="lockb" title="Kunci aplikasi">🔒</button><button class="ghost" id="setb">Atur</button></div>
 </aside><div id="shade"></div>
 <section id="main">
@@ -398,7 +398,7 @@ analyze:['Analisis','Kamu analis tajam. Pecah masalah menjadi langkah, bandingka
 const FILEI='\nSaat menulis kode: tulis kode LENGKAP dan siap dijalankan, jangan dipotong atau diganti dengan "...". Taruh nama berkas setelah nama bahasa pada baris pembuka blok kode, mis. ```html index.html, ```css style.css, ```js script.js, ```python main.py, ```json package.json, ```java Main.java. Bila proyek butuh lebih dari satu berkas, buat satu blok per berkas dengan namanya masing-masing dan hubungkan lewat jalur relatif (<link href="style.css">, <script src="script.js">). Jenis berkas apa pun boleh: HTML, CSS, JS, TS, Python, Java, C/C++, C#, Go, Rust, PHP, SQL, JSON, YAML, Markdown, shell, dan lainnya.';
 const ARTI='\nJika pengguna meminta halaman web, aplikasi mini, tampilan UI, animasi, atau diagram visual, tulis SATU file HTML lengkap (CSS dan JS inline, tanpa file eksternal) dalam satu blok ```html agar bisa dipratinjau sebagai artefak. Untuk gambar vektor gunakan blok ```svg. Jangan memotong kode.';
 const DEF={theme:'dark',acc:'lamp',font:15,lh:1.55,ff:'hyper',rf:'serif',v3:1,amem:true,cf:'jb',dens:'normal',anim:'full',bg:true,enter:true,
-temp:.7,eff:1,sys:'',persona:'default',mem:'',smem:true,art:true,model:'glm-5.3',
+temp:.7,eff:1,sug:true,sys:'',persona:'default',mem:'',smem:true,art:true,model:'glm-5.3',
 voice:'',rate:1,pitch:1,tvol:1,auto:false,lang:'id-ID',vauto:false,
 snd:true,sndk:'lembut',vol:60,sndSend:false,vib:true,nt:false,qh:false,qf:'22:00',qt:'07:00',
 tz:'auto',h24:true,ts:true,dsep:true,clk:false,inj:true,
@@ -483,6 +483,9 @@ setInterval(()=>{if(!D||!me)return;pomTick();drawSub()},1000);
 /* ===== AUTH ===== */
 $$('.tabs button').forEach(b=>b.onclick=()=>{amode=b.dataset.m;$$('.tabs button').forEach(x=>x.classList.toggle('on',x==b));$$('.up').forEach(x=>x.classList.toggle('hide',amode=='in'));OTP=null;$('#codef').classList.add('hide');$('#asub').textContent=amode=='in'?'Masuk':'Buat akun';$('#aerr').textContent=''});
 $('#eye').onclick=()=>{const p=$('#ap');p.type=p.type=='password'?'text':'password';$('#eye').textContent=p.type=='text'?'Sembunyi':'Lihat'};
+let ACCTON=false,ACCTMAIL=false;const ACAPI=window.AURALIS_ACCT||'/api/acct';
+const acPost=async b=>{try{const r=await fetch(ACAPI,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));return r.ok?{ok:true,...j}:{ok:false,status:r.status,code:j.error&&j.error.code,error:(j.error&&j.error.message)||'Gagal ('+r.status+')'}}catch(e){return{ok:false,status:0,error:'Tidak bisa terhubung ke server.'}}};
+try{fetch(ACAPI).then(r=>r.json()).then(j=>{ACCTON=!!j.enabled;ACCTMAIL=!!j.mail}).catch(()=>{})}catch(e){}
 let OTP=null,MAILON=false;const OTPAPI=window.AURALIS_OTP||'/api/otp';
 const otp=async b=>{try{const r=await fetch(OTPAPI,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));return r.ok?{ok:true,...j}:{ok:false,error:j.error||'Gagal ('+r.status+')'}}catch{return{ok:false,error:'Tidak bisa terhubung ke server.'}}};
 async function sendCode(e){
@@ -509,9 +512,21 @@ async function auth(){
    if(!v.ok)return er(v.error||'Kode salah atau kedaluwarsa.');
    OTP=null;$('#codef').classList.add('hide');
   }
-  rc=typeof recNew=='function'?recNew():'';users[e]={name:n,hash:await H(e+':'+p),color:COL[0],rh:rc?await recHash(e,rc):undefined};W('ap_users',users);
+  const ph=await H(e+':'+p);
+  if(ACCTON){const r=await acPost({action:'register',email:e,name:n,color:COL[0],ph});if(!r.ok)return er(r.error)}
+  rc=!ACCTON&&typeof recNew=='function'?recNew():'';users[e]={name:n,hash:ph,color:COL[0],rh:rc?await recHash(e,rc):undefined};W('ap_users',users);
  }else{
-  if(!users[e]||users[e].hash!==await H(e+':'+p))return er('Email atau kata sandi salah.');
+  const ph=await H(e+':'+p),lu=users[e],lok=!!lu&&lu.hash===ph;
+  if(ACCTON){
+   $('#asub').disabled=true;
+   let r=await acPost({action:'login',email:e,ph});
+   if(!r.ok&&r.status==401&&lok)r=await acPost({action:'login',email:e,ph,create:true,name:lu.name,color:lu.color});
+   $('#asub').disabled=false;
+   if(r.ok){users[e]={...(lu||{}),name:r.profile.name,color:r.profile.color||(lu&&lu.color)||COL[0],hash:ph};W('ap_users',users)}
+   else if(r.status==401)return er(lok?'Kata sandi ini sudah diganti di perangkat lain. Pakai kata sandi terbaru, atau pilih Lupa kata sandi.':'Email atau kata sandi salah.');
+   else if(r.status==429)return er(r.error);
+   else if(!lok)return er(r.status===0?'Tidak bisa terhubung ke server.':r.error);
+  }else if(!lok)return er('Email atau kata sandi salah.');
  }
  me=e;W('ap_me',me);$('#ap').value=$('#ap2').value='';$('#aerr').textContent='';boot();if(rc)recShow(rc,1);else if(typeof recNudge=='function')recNudge();
 }
@@ -568,11 +583,14 @@ function listChat(){
  const q=$('#q').value.toLowerCase().trim(),P=D.act&&D.proj.find(p=>p.id==D.act);
  let cs=D.chats.filter(c=>D.act?c.pid==D.act:true);
  if(q)cs=cs.filter(c=>c.title.toLowerCase().includes(q)||c.msgs.some(m=>(m.c||'').toLowerCase().includes(q)));
+ SNQ=q;
  const g={},ORD=['📌 Disematkan','Hari ini','Kemarin','7 hari terakhir','30 hari terakhir','Lebih lama'],n=dayKey(Date.now()),y=dayKey(Date.now()-864e5);
  cs.sort((a,b)=>b.t-a.t).forEach(c=>{const d=dayKey(c.t),k=c.pin?ORD[0]:d==n?ORD[1]:d==y?ORD[2]:Date.now()-c.t<6048e5?ORD[3]:Date.now()-c.t<2592e6?ORD[4]:ORD[5];(g[k]=g[k]||[]).push(c)});
  let i=0;
  $('#list').innerHTML=selBar(cs.length)+(P?`<div class="pjb"><i class="dot" style="background:${P.color}"></i><span>${esc(P.name)}</span><button class="ghost" style="padding:4px 10px" data-do="pjoff">Keluar</button></div>`:'')+
- (ORD.filter(k=>g[k]).map(k=>`<div class="gh">${k}</div>`+g[k].map(c=>ciRow(c,i++)).join('')).join('')||'<div class="hint" style="padding:10px">Belum ada obrolan.</div>')+trashLink()}
+ (ORD.filter(k=>g[k]).map(k=>`<div class="gh">${k}</div>`+g[k].map(c=>ciRow(c,i++)).join('')).join('')||'<div class="hint" style="padding:10px">Belum ada obrolan.</div>')+trashLink();SNQ=''}
+let SNQ='';
+function snipOf(c,q){const m=c.msgs.find(x=>(x.c||'').toLowerCase().includes(q));if(!m)return'';const t=m.c.replace(/\s+/g,' '),i=t.toLowerCase().indexOf(q),a=Math.max(0,i-28);return '<small class="ms">'+(a?'…':'')+esc(t.slice(a,i))+'<mark>'+esc(t.slice(i,i+q.length))+'</mark>'+esc(t.slice(i+q.length,i+q.length+50))+'</small>'}
 const codes=()=>{const out=[],seen=new Set();
  (D.snip||[]).forEach(s=>{seen.add(s.h);out.push({...s,saved:1})});
  D.chats.forEach(c=>c.msgs.forEach(m=>{if(m.r!='assistant')return;for(const x of m.c.matchAll(/```([^\n`]*)\n([\s\S]*?)```/g)){const code=x[2].trim();if(!code)continue;const h=hash(code),fi=fenceInfo(x[1],x[2]);if(seen.has(h))continue;seen.add(h);out.push({lang:fi.l||'txt',code,h,cid:c.id,ct:c.title,t:m.t||c.t})}}));
@@ -781,7 +799,7 @@ function busyUI(v){busy=v;$('#app').classList.toggle('busy',v);$('#go').textCont
 const setSend=()=>$('#go').classList.toggle('has',!busy&&(!!$('#in').value.trim()||!!atts.length));
 async function reply(o){
  o=o||{};busyUI(true);ctl=new AbortController();
- $$('.m.a [data-a=rg],.m.a [data-a=rgm],.m.a .vn').forEach(x=>x.remove());
+ $$('.m.a [data-a=rg],.m.a [data-a=rgm],.m.a .vn').forEach(x=>x.remove());sugClear();
  const b=bub('assistant','',1),bc=b.querySelector('.bc');bc.innerHTML='<div class="dots"><i></i><i></i><i></i></div>';stick(1);
  let out='',raf=0,src=null,ex='';const paint=()=>{raf=0;bc.innerHTML=md(out,0,src)+'<span class="caret"></span>';stick()};
  try{
@@ -799,7 +817,7 @@ async function reply(o){
   cur.msgs.push(m);cur.t=ts;bc.innerHTML=md(out,1,src);
   b.insertAdjacentHTML('beforeend',`<div class="ts" title="${esc(fullT(ts))}">${fmtT(ts)}${lastM?' · '+esc(lastM):''}</div>`);
   acts(b,true,0,m);mEl.dataset.i=cur.msgs.length-1;mathFix(bc);done(out);if(S().auto)speak(out,1)}else mEl.remove();
- save();busyUI(false);side();stick();if(out&&!bad)memLearn()}
+ save();busyUI(false);side();stick();if(out&&!bad){memLearn();sugGo(b,out)}}
 const WIN=216e5;let lastIn=0;
 const estTok=s=>Math.ceil((s||'').length/4);
 const fN=n=>Math.round(n).toLocaleString('id-ID'),fK=n=>n>=1000?(n/1000).toFixed(n>=10000?0:1).replace('.',',')+'rb':String(n);
@@ -813,6 +831,7 @@ async function send(t){
  if(atts.some(a=>a.loading))return toast('Berkas masih dibaca…');
  if(!navigator.onLine)return toast('Kamu sedang offline. Pesan belum bisa dikirim.');
  if(overLim())return limHit();
+ sugClear();
  if(!cur)mk();
  let img=null;const docs=[];
  atts.forEach(a=>{if(a.img)img=a.img;else docs.push({n:a.name,t:a.text})});
@@ -1099,7 +1118,7 @@ privasi(){const has=!!S().pin;return `<h3>Privasi</h3><div class="grp">
 bagi(){return `<h3>Berbagi</h3><div class="grp">${T('sh.name','Tampilkan namaku di hasil bagikan','Jika mati, ditulis "Kamu"')}${T('sh.ts','Sertakan waktu pesan')}${T('sh.img','Sertakan gambar','Hanya untuk format HTML')}${T('sh.wm','Tanda "Dibuat dengan Auralis AI"')}</div>
  <p class="hint">Pengaturan ini berlaku saat membagikan lewat tombol ↗. Berkas dibuat di perangkatmu, tidak ada tautan publik.</p><div class="btns">${BTN('sh-open','Bagikan obrolan saat ini')}</div>`},
 persona(){return `<h3>Persona</h3><div class="grp">
- ${SEL('persona','Persona',Object.entries(PER).map(([k,v])=>[k,v[0]]))}${RNG('temp','Kreativitas',0,1.5,.1,'')}${T('art','Artefak otomatis','AI diminta menulis halaman web lengkap agar bisa dipratinjau')}
+ ${SEL('persona','Persona',Object.entries(PER).map(([k,v])=>[k,v[0]]))}${RNG('temp','Kreativitas',0,1.5,.1,'')}${T('sug','Saran pertanyaan lanjutan','Tombol saran di bawah jawaban. Memakai sedikit token tambahan.')}${T('art','Artefak otomatis','AI diminta menulis halaman web lengkap agar bisa dipratinjau')}
  ${T('smem','Gunakan memori')}
  ${fr('Catatan manual','Hal yang perlu AI ingat tentang kamu',`<textarea data-k="mem" rows="3" placeholder="Contoh: aku developer Roblox, suka jawaban singkat">${esc(S().mem)}</textarea>`,'col')}
  ${fr('Instruksi kustom',null,`<textarea data-k="sys" rows="2" placeholder="Contoh: jawab singkat dan santai">${esc(S().sys)}</textarea>`,'col')}</div>`},
@@ -1113,7 +1132,7 @@ pakai(){
  <div class="hint">Prompt cepat kustom (ketik / di kolom pesan)</div>
  <div>${(D.prm||[]).map((p,i)=>`<div class="kn"><span><b>/${esc(p.n)}</b> ${esc(p.t.slice(0,50))}</span><button data-do="prm-del" data-i="${i}" aria-label="Hapus">✕</button></div>`).join('')||'<div class="hint">Belum ada.</div>'}</div>
  <div class="grp"><div class="fr col"><div>Tambah prompt</div><div class="ctl" style="flex-direction:column"><input id="prn" placeholder="Nama singkat, mis. review" maxlength="20"><textarea id="prt" rows="2" placeholder="Isi prompt"></textarea><button class="btn sm" data-do="prm-add" style="align-self:flex-start">Tambah</button></div></div></div>`},
-data(){return `<h3>Keamanan akun</h3><p class="hint">Kode pemulihan dipakai untuk membuat kata sandi baru bila kamu lupa. Simpan di tempat aman, misalnya pengelola kata sandi atau catatan pribadi.</p><div class="btns">${BTN('rec-new',(users[me]&&users[me].rh?'Buat kode pemulihan baru':'Buat kode pemulihan'))}</div><h3 style="margin-top:22px">Data</h3><div class="btns">${BTN('exp-json','Ekspor semua data (JSON)')}${BTN('imp','Impor data')}</div><input type="file" id="impf" class="hide" accept=".json,application/json">
+data(){return `${ACCTON?'':`<h3>Keamanan akun</h3><p class="hint">Kode pemulihan dipakai untuk membuat kata sandi baru bila kamu lupa. Simpan di tempat aman, misalnya pengelola kata sandi atau catatan pribadi.</p><div class="btns">${BTN('rec-new',(users[me]&&users[me].rh?'Buat kode pemulihan baru':'Buat kode pemulihan'))}</div>`}<h3 style="${ACCTON?'':'margin-top:22px'}">Data</h3><div class="btns">${BTN('exp-json','Ekspor semua data (JSON)')}${BTN('imp','Impor data')}</div><input type="file" id="impf" class="hide" accept=".json,application/json">
  <div class="btns">${BTN('clr-chats','Hapus semua obrolan','danger')}${BTN('trash-open','Sampah ('+((D.trash||[]).length)+')')}${BTN('clr-code','Hapus kode & artefak','danger')}${BTN('reset','Reset pengaturan')}</div>
  <div class="btns">${BTN('del-acc','Hapus akun','danger')}</div>`},
 info(){return `<h3>Info</h3><div class="grp">${fr('Auralis AI','Versi 2.0','<span class="tag">v2.0</span>')}${fr('Token 6 jam ini',null,`<span>${fN(usage())} / ${TOKLIM()?fN(TOKLIM()):'∞'}</span>`)}</div>
@@ -1142,8 +1161,15 @@ async function act(d,el,root){
  if(d=='pf-save'){
   const n=q('#sn').value.trim();if(!n)return toast('Nama tidak boleh kosong');
   const pn=q('#pn').value;
-  if(pn){if(pn.length<6)return toast('Kata sandi baru minimal 6 karakter');if(users[me].hash!==await H(me+':'+q('#po').value))return toast('Kata sandi lama salah');users[me].hash=await H(me+':'+pn)}
-  users[me].name=n;const c=q('#pfc .on');if(c)users[me].color=c.dataset.c;W('ap_users',users);prof();if(!busy&&!cur)drawMsgs();q('#po').value=q('#pn').value='';toast('Profil disimpan')}
+  let nph=null;
+  if(pn){if(pn.length<6)return toast('Kata sandi baru minimal 6 karakter');if(users[me].hash!==await H(me+':'+q('#po').value))return toast('Kata sandi lama salah');nph=await H(me+':'+pn)}
+  const c=q('#pfc .on');
+  if(ACCTON){
+   await acPost({action:'login',email:me,ph:users[me].hash,create:true,name:users[me].name,color:users[me].color});
+   const r=await acPost({action:'update',email:me,ph:users[me].hash,name:n,color:c?c.dataset.c:undefined,newph:nph||undefined});
+   if(!r.ok)return toast(r.status===0?'Tidak bisa terhubung ke server. Coba lagi saat online.':r.error)}
+  if(nph)users[me].hash=nph;
+  users[me].name=n;if(c)users[me].color=c.dataset.c;W('ap_users',users);prof();if(!busy&&!cur)drawMsgs();q('#po').value=q('#pn').value='';toast('Profil disimpan')}
  else if(d=='pf-out')logout();
  else if(d=='snd-test')ping();
  else if(d=='tts-test')speak('Halo, ini contoh suara bacaan Auralis.',1);
@@ -1177,7 +1203,7 @@ async function act(d,el,root){
  else if(d=='sh-links')linkView();
  else if(d=='clr-code'){if(confirm('Hapus semua kode tersimpan dan artefak?')){D.snip.forEach(x=>tomb('s'+x.id));D.arts.forEach(x=>tomb('a'+x.id));D.snip=[];D.arts=[];save();side();toast('Dihapus')}}
  else if(d=='reset'){if(confirm('Kembalikan semua pengaturan ke bawaan? PIN tidak berubah.')){const k={pin:S().pin,pinl:S().pinl,lockm:S().lockm};D.set={...DEF,sh:{...DEF.sh},...k};save();skin();prof();drawSub(1);renderPane();toast('Pengaturan direset')}}
- else if(d=='del-acc'){if(confirm('Hapus akun beserta semua datanya? Tindakan ini permanen.')){const e=me;try{localStorage.removeItem('ap_d_'+e);localStorage.removeItem('ap_sync_'+e);localStorage.removeItem('ap_sync_'+e+'_t')}catch{}delete users[e];W('ap_users',users);POM=null;W('ap_pom',null);logout()}}
+ else if(d=='del-acc'){if(confirm('Hapus akun beserta semua datanya? Tindakan ini permanen.')){const e=me;if(ACCTON){const r=await acPost({action:'delete',email:e,ph:users[e].hash});if(!r.ok&&r.status!=401)return toast(r.error)}try{localStorage.removeItem('ap_d_'+e);localStorage.removeItem('ap_sync_'+e);localStorage.removeItem('ap_sync_'+e+'_t')}catch{}delete users[e];W('ap_users',users);POM=null;W('ap_pom',null);logout()}}
  else if(d=='install'){if(IP){IP.prompt();IP=null}else toast('Buka menu browser lalu pilih Tambahkan ke layar utama')}
  else if(d=='tos'||d=='prv')docView(d)
  else if(d.startsWith('sy-'))syAct(d,el,root)}
@@ -1258,7 +1284,7 @@ document.addEventListener('pointerdown',e=>{
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').then(r=>{r.addEventListener('updatefound',()=>{const n=r.installing;if(n)n.addEventListener('statechange',()=>{if(n.state=='installed'&&navigator.serviceWorker.controller)toast('Versi baru terpasang. Muat ulang untuk memakainya.')})})}).catch(()=>{});
 
 /* ===== Auralis AI v2.0 · bagian 4: sinkron antar perangkat (terenkripsi ujung ke ujung) ===== */
-const SYAPI=window.AURALIS_SYNC||'/api/sync',SYMAX=900000,B32='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+const SYAPI=window.AURALIS_SYNC||'/api/sync',SYMAX=900000,symax=()=>(typeof LIC!='undefined'&&LIC&&LIC.q>SYMAX?LIC.q:SYMAX),B32='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const SY={on:false,code:'',keys:null,v:0,last:0,st:'',busy:false,t:0,merging:false,enabled:null};
 const syKey=()=>'ap_sync_'+me;
 const tomb=k=>{D.tomb=D.tomb||{};D.tomb[k]=Date.now()};
@@ -1326,7 +1352,7 @@ async function syRun(){
    const g=await syFetch('GET','?id='+SY.keys.id);
    if(g.v>0&&g.d)syMerge(await syUnpack(g.d));
    const d=await syPack(syPayload());
-   if(d.length>SYMAX)throw Error('Data terlalu besar ('+Math.round(d.length/1024)+' KB). Hapus obrolan lama lalu coba lagi.');
+   if(d.length>symax())throw Error('Data terlalu besar ('+Math.round(d.length/1024)+' KB dari batas '+Math.round(symax()/1000)+' KB). Hapus obrolan lama atau minta penjual menambah penyimpanan.');
    try{const j=await syFetch('POST','',{id:SY.keys.id,ws:SY.keys.ws,d,v:g.v});SY.v=j.v;done=true}
    catch(e){if(e.status!=409)throw e}}
   if(!done)throw Error('Data berubah terus, coba lagi nanti');
@@ -1503,13 +1529,13 @@ async function proInit(){
 async function proRefresh(){
  if(!LIC||!LIC.code)return;
  try{const r=await proPost({action:'redeem',code:LIC.code,dev:devId()});
-  if(r.ok){LIC={...LIC,token:r.j.token,te:r.j.te,exp:r.j.exp,rt:Date.now()};W(licKey(),LIC)}
+  if(r.ok){LIC={...LIC,token:r.j.token,te:r.j.te,exp:r.j.exp,q:r.j.q||0,rt:Date.now()};W(licKey(),LIC)}
   else if([403,404,410].includes(r.status)){LIC=null;try{localStorage.removeItem(licKey())}catch{}toast('Langganan Pro tidak aktif lagi. '+perr(r))}}
  catch{}}
 async function proRedeem(code){
  const r=await proPost({action:'redeem',code,dev:devId()});
  if(!r.ok)throw Error(perr(r));
- LIC={code:normCode(code),token:r.j.token,te:r.j.te,exp:r.j.exp,rt:Date.now()};W(licKey(),LIC);usageSync();
+ LIC={code:normCode(code),token:r.j.token,te:r.j.te,exp:r.j.exp,q:r.j.q||0,rt:Date.now()};W(licKey(),LIC);usageSync();
  proUI();fillModels();webBtn();if(PANE&&PANE.isConnected&&SECID=='langganan')renderPane();
  toast('Pro aktif sampai '+dateStr(LIC.exp))}
 function proUI(){const on=PRO.on&&isPro();$('#plan').classList.toggle('hide',!on);$('#upg').classList.toggle('hide',!PRO.on||on);meterUI()}
@@ -1532,7 +1558,7 @@ const WHY={msgs:['Batas token paket Gratis tercapai','Kamu sudah memakai '+FREE.
 function proBody(why){
  if(!PRO.on)return '<h3>Langganan</h3><p class="hint">Sistem langganan belum diaktifkan di server ini, jadi semua fitur terbuka. Pemilik aplikasi bisa mengaktifkannya lewat api/pro.js.</p>';
  const pro=isPro();let w=WHY[why];if(why=='msgs'&&w)w=[w[0],w[1]+' Reset dalam '+resetTxt()+'.'];
- const head=pro?`<h3>Pro aktif</h3><p class="hint">Berlaku sampai ${dateStr(LIC.exp)}. Memasukkan kode baru menggantikan kode yang lama.</p>`:`<h3>${w?w[0]:'Auralis Pro'}</h3><p class="hint">${w?w[1]:'Buka semua fitur Auralis.'}</p>`;
+ const head=pro?`<h3>Pro aktif</h3><p class="hint">Berlaku sampai ${dateStr(LIC.exp)}. Penyimpanan sinkron: ${LIC.q>9e5?(LIC.q/1e6)+' MB':'900 KB'}. Memasukkan kode baru menggantikan kode yang lama.</p>`:`<h3>${w?w[0]:'Auralis Pro'}</h3><p class="hint">${w?w[1]:'Buka semua fitur Auralis.'}</p>`;
  const rows=[['Token per 6 jam','15.000','50.000'],['Model','Dasar','Semua, termasuk Claude, GPT, Kimi'],['Lampiran sekaligus',String(FREE.atts),'5'],['Pencarian web','Tidak','Ya'],['Sinkron antar perangkat','Tidak','Ya'],['Artefak multi-berkas dan riwayat','Tidak','Ya'],['Tautan berbagi baca-saja','Tidak','Ya']];
  const plans=PRO.plans.length?`<div style="margin:6px 0 12px">${PRO.plans.map((p,i)=>PRO.auto?`<div class="pl"><span>${esc(p.n)}</span><button class="btn sm" data-do="pro-buy" data-i="${i}">${esc(p.p||'Bayar')}</button></div>`:`<div class="pl"><span>${esc(p.n)}</span><b>${esc(p.p)}</b></div>`).join('')}</div><p id="paywait" class="hint hide">Menunggu pembayaran selesai. Pro aktif otomatis setelah dibayar, jangan tutup halaman ini.</p>`:'';
  const buy=PRO.auto?`<p class="hint">Pilih paket di atas. Kamu diarahkan ke halaman pembayaran Midtrans (QRIS, e-wallet, transfer bank). Pro aktif otomatis setelah dibayar.</p>`:PRO.pay||PRO.contact?`<div class="btns" style="margin:10px 0">${PRO.pay?`<button class="btn" data-do="pro-pay">${pro?'Perpanjang':'Beli Pro'}</button>`:''}${PRO.contact?'<button class="ghost" data-do="pro-wa">Kirim bukti bayar</button>':''}</div><p class="hint">Setelah membayar, penjual mengirim kode kepadamu. Masukkan kode itu di bawah.</p>`:'<p class="hint">Hubungi pemilik aplikasi untuk membeli kode Pro.</p>';
@@ -1566,7 +1592,7 @@ const CSEL={on:false,ids:new Set()};
 const agoStr=t=>{const m=Math.round((Date.now()-t)/6e4);return m<1?'baru saja':m<60?m+' menit lalu':m<1440?Math.round(m/60)+' jam lalu':Math.round(m/1440)+' hari lalu'};
 function ciRow(c,i){
  const sel=CSEL.on;
- return `<div class="ci ${sel?'sel'+(CSEL.ids.has(c.id)?' chk':''):(cur&&cur.id==c.id?'on':'')}" style="--i:${Math.min(i,12)}" data-id="${c.id}">${sel?'<i class="ck"></i>':''}${c.pid&&!D.act?pjDot(c.pid):''}<span>${esc(c.title)}</span>${c.tmp?'<em>👻</em>':''}${sel?'':`<b data-pin="${c.id}" title="Sematkan">${c.pin?'★':'☆'}</b><b data-del="${c.id}" title="Hapus">✕</b>`}</div>`}
+ return `<div class="ci ${sel?'sel'+(CSEL.ids.has(c.id)?' chk':''):(cur&&cur.id==c.id?'on':'')}" style="--i:${Math.min(i,12)}" data-id="${c.id}">${sel?'<i class="ck"></i>':''}${c.pid&&!D.act?pjDot(c.pid):''}<span>${esc(c.title)}${SNQ&&!c.title.toLowerCase().includes(SNQ)?snipOf(c,SNQ):''}</span>${c.tmp?'<em>👻</em>':''}${sel?'':`<b data-pin="${c.id}" title="Sematkan">${c.pin?'★':'☆'}</b><b data-del="${c.id}" title="Hapus">✕</b>`}</div>`}
 function selBar(n){
  if(CSEL.on)return `<div class="selbar"><span>${CSEL.ids.size} dipilih</span><button data-do="sel-all">Semua</button><button class="danger" data-do="sel-del">Hapus</button><button data-do="sel-off">Batal</button></div>`;
  return n>1?'<div class="selbar"><span></span><button data-do="sel-on">Pilih</button></div>':''}
@@ -1837,7 +1863,7 @@ async function recMake(){
  if(!me||!users[me])return;
  const c=recNew();users[me].rh=await recHash(me,c);W('ap_users',users);recShow(c,0)}
 function recNudge(){
- if(!me||!users[me]||users[me].rh||L('ap_recn_'+me,0))return;
+ if(ACCTON||!me||!users[me]||users[me].rh||L('ap_recn_'+me,0))return;
  W('ap_recn_'+me,1);setTimeout(()=>toast('Buat kode pemulihan di Pengaturan > Data, supaya aman kalau lupa kata sandi'),2800)}
 setTimeout(recNudge,3500);
 
@@ -1846,16 +1872,19 @@ try{fetch(RSAPI).then(r=>r.json()).then(j=>{RESETON=!!j.enabled}).catch(()=>{})}
 const fgErr=m=>{$('#fgerr').textContent=m||''};
 const rsPost=async b=>{try{const r=await fetch(RSAPI,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));return r.ok?{ok:true,...j}:{ok:false,error:(j.error&&j.error.message)||'Gagal ('+r.status+')'}}catch{return{ok:false,error:'Tidak bisa terhubung ke server'}}};
 function fgMode(m){FGM=m;$$('#fgt button').forEach(b=>b.classList.toggle('on',b.dataset.f==m));$('#fgrc').classList.toggle('hide',m!='rc');$('#fgcode').classList.toggle('hide',m!='em');fgErr()}
-$('#fgo').onclick=()=>{$('.card').classList.add('fg');$('#fe').value=$('#ae').value.trim();$('#fgem').classList.toggle('hide',!RESETON);fgMode('rc');FGTok=null;fgErr()};
+$('#fgo').onclick=()=>{$('.card').classList.add('fg');$('#fe').value=$('#ae').value.trim();$('#fgem').classList.toggle('hide',!RESETON);fgMode('rc');FGTok=null;fgErr();
+ $('#fgt').classList.toggle('hide',ACCTON);
+ $('#fgp .hint').textContent=ACCTON?'Kode pemulihan 6 digit akan dikirim ke email akunmu.':'Akunmu disimpan di perangkat ini. Pilih cara memulihkannya.';
+ if(ACCTON){fgMode('em');if(!ACCTMAIL)fgErr('Pemulihan lewat email belum diaktifkan di server ini.')}};
 $('#fgb').onclick=()=>{$('.card').classList.remove('fg');$('#fp').value=$('#fp2').value=$('#frc').value=$('#fcode').value='';FGTok=null};
 $$('#fgt button').forEach(b=>b.onclick=()=>fgMode(b.dataset.f));
 const fgMail=()=>$('#fe').value.trim().toLowerCase();
 function fgAcct(){const e=fgMail();if(!/^\S+@\S+\.\S+$/.test(e)){fgErr('Format email belum benar.');return null}
- if(!users[e]){fgErr('Akun dengan email ini tidak ada di perangkat ini. Akun Auralis disimpan per perangkat, jadi coba di perangkat tempat kamu mendaftar.');return null}return e}
+ if(!ACCTON&&!users[e]){fgErr('Akun dengan email ini tidak ada di perangkat ini. Akun Auralis disimpan per perangkat, jadi coba di perangkat tempat kamu mendaftar.');return null}return e}
 $('#fsend').onclick=async()=>{
  const e=fgAcct();if(!e)return;
  $('#fsend').disabled=true;fgErr('Mengirim kode...');
- const r=await rsPost({action:'send',email:e});$('#fsend').disabled=false;
+ const r=ACCTON?await acPost({action:'rsend',email:e}):await rsPost({action:'send',email:e});$('#fsend').disabled=false;
  if(!r.ok)return fgErr(r.error);
  FGTok={token:r.token,exp:r.exp};fgErr('Kode dikirim ke '+e+'. Cek inbox atau folder spam.');$('#fcode').focus()};
 const FGL=L('ap_fgl',{n:0,t:0});
@@ -1874,6 +1903,12 @@ $('#fgok').onclick=async()=>{
  else{
   if(!FGTok)return fgErr('Kirim kode ke email dulu.');
   const c=$('#fcode').value.trim();if(!/^\d{6}$/.test(c))return fgErr('Masukkan 6 digit kode dari email.');
+  if(ACCTON){
+   const ph=await H(e+':'+p),v=await acPost({action:'reset',email:e,code:c,token:FGTok.token,exp:FGTok.exp,ph});
+   if(!v.ok)return fgErr(v.error);
+   users[e]={...(users[e]||{}),name:v.profile.name,color:v.profile.color||(users[e]&&users[e].color)||COL[0],hash:ph};delete users[e].rh;W('ap_users',users);
+   FGL.n=0;W('ap_fgl',FGL);$('.card').classList.remove('fg');$('#fp').value=$('#fp2').value=$('#frc').value=$('#fcode').value='';FGTok=null;fgErr();
+   me=e;W('ap_me',me);boot();toast('Kata sandi diganti');return}
   const v=await rsPost({action:'verify',email:e,code:c,token:FGTok.token,exp:FGTok.exp});
   if(!v.ok)return fgErr(v.error)}
  FGL.n=0;W('ap_fgl',FGL);
@@ -2065,6 +2100,7 @@ async function admDraw(o){
  <div class="adg"><div><label for="adD">Masa berlaku</label><select id="adD">${ADDAYS.map(x=>`<option value="${x[0]}"${x[0]==30?' selected':''}>${x[1]}</option>`).join('')}<option value="0">Kustom…</option></select></div>
  <div id="adCW" class="hide"><label for="adCu">Hari (1-730)</label><input id="adCu" type="number" min="1" max="730" value="45" style="text-transform:none"></div>
  <div><label for="adN">Jumlah kode</label><input id="adN" type="number" min="1" max="20" value="1" style="text-transform:none"></div>
+ <div><label for="adQ2">Penyimpanan sinkron</label><select id="adQ2"><option value="0">Standar (900 KB)</option><option value="2">2 MB</option><option value="3">3 MB</option><option value="4">4 MB</option></select></div>
  <div><label for="adM">Maks. perangkat</label><input id="adM" type="number" min="1" max="10" value="3" style="text-transform:none"></div></div>
  <label for="adT" style="margin-top:8px">Catatan (nama pembeli)</label><input id="adT" placeholder="Contoh: Budi, via WhatsApp" maxlength="60" style="text-transform:none">
  <div class="btns" style="margin-top:10px"><button class="btn sm" data-adm="make">Buat kode</button><button class="ghost" data-adm="list">Segarkan</button><button class="ghost" data-adm="csv">Ekspor CSV</button><button class="ghost" data-adm="out">Keluar</button></div><div id="adR"></div></div>
@@ -2079,8 +2115,8 @@ function admRows(o){
  const now=Date.now(),qy=(q1(o,'#adQ').value||'').toLowerCase().trim(),f=q1(o,'#adF').value;
  const rows=ADROWS.filter(r=>(f=='all'||admSt(r,now)==f)&&(!qy||(r.code+' '+(r.note||'')).toLowerCase().includes(qy)));
  q1(o,'#adL').innerHTML=rows.length?rows.map(r=>{const k=admSt(r,now),st=k=='rev'?'Dicabut':k=='new'?'Belum dipakai · '+r.d+' hari':k=='exp'?'Kedaluwarsa '+dateStr(r.exp):'Aktif sampai '+dateStr(r.exp)+' · '+r.devs+'/'+r.max+' perangkat';
-  const c=esc(r.code);
-  return `<div class="lrow"><code>${c}</code><span class="hint">${esc(r.note?r.note+' · ':'')+st}</span><div class="lact"><button class="ghost" data-adm="cp" data-c="${c}">Salin</button><button class="ghost" data-adm="ext" data-c="${c}">Perpanjang</button><button class="ghost" data-adm="note" data-c="${c}" data-n="${esc(r.note||'')}">Catatan</button>${r.devs?`<button class="ghost" data-adm="rst" data-c="${c}">Reset perangkat</button>`:''}${r.rev?`<button class="ghost" data-adm="res" data-c="${c}">Aktifkan lagi</button>`:`<button class="ghost" data-adm="rev" data-c="${c}">Cabut</button>`}<button class="ghost" data-adm="del" data-c="${c}">Hapus</button></div></div>`}).join(''):'<p class="hint">Tidak ada kode yang cocok.</p>'}
+  const c=esc(r.code),sg=' · Storage '+(r.q?(r.q/1e6)+' MB':'900 KB');
+  return `<div class="lrow"><code>${c}</code><span class="hint">${esc(r.note?r.note+' · ':'')+st+sg}</span><div class="lact"><button class="ghost" data-adm="cp" data-c="${c}">Salin</button><button class="ghost" data-adm="ext" data-c="${c}">Perpanjang</button><button class="ghost" data-adm="sto" data-c="${c}" data-q="${r.q||0}">Storage</button><button class="ghost" data-adm="note" data-c="${c}" data-n="${esc(r.note||'')}">Catatan</button>${r.devs?`<button class="ghost" data-adm="rst" data-c="${c}">Reset perangkat</button>`:''}${r.rev?`<button class="ghost" data-adm="res" data-c="${c}">Aktifkan lagi</button>`:`<button class="ghost" data-adm="rev" data-c="${c}">Cabut</button>`}<button class="ghost" data-adm="del" data-c="${c}">Hapus</button></div></div>`}).join(''):'<p class="hint">Tidak ada kode yang cocok.</p>'}
 async function admList(o){
  try{
   const j=await admPro({action:'list'}),now=Date.now();ADROWS=j.rows||[];
@@ -2102,14 +2138,14 @@ async function admDo(d,el,o){
   else if(d=='make'){
    let days=+q1(o,'#adD').value;if(!days)days=Math.min(730,Math.max(1,+q1(o,'#adCu').value||0));
    if(!days)return toast('Isi jumlah hari');
-   const j=await admPro({action:'create',days,count:+q1(o,'#adN').value||1,max:+q1(o,'#adM').value||3,note:q1(o,'#adT').value});
+   const j=await admPro({action:'create',days,count:+q1(o,'#adN').value||1,max:+q1(o,'#adM').value||3,q:+q1(o,'#adQ2').value,note:q1(o,'#adT').value});
    q1(o,'#adR').innerHTML=`<div class="codes" id="adCodes">${esc(j.codes.join('\n'))}</div><button class="ghost" data-adm="copy" style="margin-top:6px">Salin semua</button>`;admList(o)}
   else if(d=='copy'){navigator.clipboard.writeText(q1(o,'#adCodes').textContent);toast('Kode disalin')}
   else if(d=='cp'){navigator.clipboard.writeText(c);toast('Kode disalin')}
   else if(d=='list')await admList(o);
   else if(d=='csv'){
    const now=Date.now(),q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
-   const rows=[['kode','status','catatan','hari','berakhir','perangkat','maks_perangkat'].join(',')].concat(ADROWS.map(r=>[r.code,admSt(r,now),r.note,r.d,r.exp?new Date(r.exp).toISOString().slice(0,10):'',r.devs,r.max].map(q).join(',')));
+   const rows=[['kode','status','catatan','hari','berakhir','perangkat','maks_perangkat','storage_mb'].join(',')].concat(ADROWS.map(r=>[r.code,admSt(r,now),r.note,r.d,r.exp?new Date(r.exp).toISOString().slice(0,10):'',r.devs,r.max,r.q?r.q/1e6:0.9].map(q).join(',')));
    dlBlob(new Blob(['﻿'+rows.join('\n')],{type:'text/csv'}),'lisensi-auralis.csv')}
   else if(d=='out'){try{await admPost(ADMAPI,{action:'logout'},{'x-admin-session':ADM})}catch(e){}admSet(null);admLogin(o)}
   else{
@@ -2118,6 +2154,7 @@ async function admDo(d,el,o){
    else if(d=='rst'){if(!confirm('Reset daftar perangkat untuk '+c+'? Perangkat bisa mendaftar ulang.'))return;await admPro({action:'reset',code:c})}
    else if(d=='del'){if(!confirm('Hapus kode '+c+' permanen?'))return;await admPro({action:'delete',code:c})}
    else if(d=='ext'){const v=prompt('Tambah berapa hari untuk '+c+'? (1-3650)','30');if(!v)return;const n=Math.round(+v);if(!(n>=1&&n<=3650))return toast('Isi angka 1 sampai 3650');await admPro({action:'extend',code:c,days:n});toast('Diperpanjang '+n+' hari')}
+   else if(d=='sto'){const v=prompt('Penyimpanan sinkron untuk '+c+' (isi 0 untuk standar 900 KB, atau 2, 3, 4 untuk MB):',String(el.dataset.q>0?el.dataset.q/1e6:0));if(v===null)return;const n=Math.round(+v);if(![0,2,3,4].includes(n))return toast('Pilih 0, 2, 3, atau 4');await admPro({action:'storage',code:c,q:n});toast('Penyimpanan diubah. Berlaku di perangkat pengguna dalam sehari')}
    else if(d=='note'){const v=prompt('Catatan untuk '+c,el.dataset.n||'');if(v===null)return;await admPro({action:'note',code:c,note:v})}
    await admList(o)}
  }catch(e){toast(e.message)}
@@ -2125,6 +2162,24 @@ async function admDo(d,el,o){
 function admHash(){if(location.hash=='#admin'){history.replaceState(null,'',location.pathname+location.search);admOpen()}}
 addEventListener('hashchange',admHash);
 setTimeout(admHash,500);
+
+/* --- saran pertanyaan lanjutan (chip di bawah jawaban terakhir) --- */
+let sugN=0;
+function sugClear(){sugN++;$$('.sg').forEach(x=>x.remove())}
+async function sugGo(b,out){
+ if(!S().sug||!navigator.onLine||out.length<100||overLim())return;
+ const n=++sugN,q=lastUserText();if(!q)return;
+ let arr;
+ try{
+  const t=await quickAsk('Kamu membuat saran pertanyaan lanjutan. Beri tepat 3 pertanyaan atau perintah singkat (maksimal 8 kata, dari sudut pandang pengguna) yang paling mungkin ingin dikirim pengguna setelah jawaban ini. Pakai bahasa yang sama dengan pengguna dan jangan mengulang yang sudah dibahas. Balas HANYA array JSON berisi 3 string.','Pengguna: '+q.slice(0,500)+'\n\nJawaban: '+out.replace(/```[\s\S]*?```/g,'[kode]').slice(0,900),12000);
+  const m=t.match(/\[[\s\S]*\]/);arr=JSON.parse(m[0])}
+ catch(e){return}
+ if(n!=sugN||!b.isConnected||busy||!Array.isArray(arr))return;
+ arr=arr.filter(x=>typeof x=='string'&&x.trim().length>3&&x.length<80).slice(0,3);if(!arr.length)return;
+ $$('.sg').forEach(x=>x.remove());
+ b.insertAdjacentHTML('beforeend','<div class="sg">'+arr.map(x=>'<button data-sg="'+esc(x)+'">'+esc(x)+'</button>').join('')+'</div>');
+ stick();usageSync()}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-sg]');if(b){const t=b.dataset.sg;sugClear();send(t)}});
 
 boot();
 </script></body></html>
