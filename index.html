@@ -793,7 +793,8 @@ async function ask(onTok,extra,mo){
  if(!r.ok){let e='Permintaan gagal ('+r.status+')';try{const j=await r.json();e=j.error?.message||e;if(j.error&&j.error.code=='quota'){limHit();usageSync()}}catch{}throw Error(e)}
  const rd=r.body.getReader(),dc=new TextDecoder();let buf='',out='';
  for(;;){const{done,value}=await rd.read();if(done)break;buf+=dc.decode(value,{stream:true});const ls=buf.split('\n');buf=ls.pop();
-  for(const l of ls){if(!l.startsWith('data:'))continue;const d=l.slice(5).trim();if(d=='[DONE]')continue;try{const j=JSON.parse(d),t=j.choices?j.choices[0]?.delta?.content:(j.type=='content_block_delta'?j.delta.text:'');if(t){out+=t;onTok(out)}}catch{}}}
+  for(const l of ls){if(!l.startsWith('data:'))continue;const d=l.slice(5).trim();if(d=='[DONE]')continue;let j;try{j=JSON.parse(d)}catch{continue}if(j.error)throw Error(j.error.message||'Gateway error');const t=j.choices?j.choices[0]?.delta?.content:(j.type=='content_block_delta'?j.delta.text:'');if(t){out+=t;onTok(out)}}}
+ if(!out)throw Error('Model tidak mengembalikan jawaban. Coba ulangi atau pilih model lain.');
  return out}
 function busyUI(v){busy=v;$('#app').classList.toggle('busy',v);$('#go').textContent=v?'■':'➤';$('#go').classList.toggle('stop',v);setSend()}
 const setSend=()=>$('#go').classList.toggle('has',!busy&&(!!$('#in').value.trim()||!!atts.length));
