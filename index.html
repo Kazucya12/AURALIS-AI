@@ -263,7 +263,7 @@ a.cite{display:inline-block;min-width:1.35em;text-align:center;font-size:.7em;li
 .pl{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd)}.pl b{color:var(--ac)}
 .cd{display:flex;gap:8px}.cd input{font-family:var(--cf);letter-spacing:.04em;text-transform:uppercase}
 .sell summary{cursor:pointer;color:var(--mu);font-size:.85em;margin-top:18px}.sell .cd{margin-top:8px;flex-wrap:wrap}.sell select,.sell input{width:auto;flex:1;min-width:90px}
-.adg{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}.adg label{display:block;font-size:.8em;color:var(--mu)}.adg label,#admb .f>label+.adg{margin-bottom:4px}.adg input,.adg select{width:100%}.lrow{flex-wrap:wrap}.lact{display:flex;gap:6px;flex-wrap:wrap;width:100%;padding-bottom:6px}.lact .ghost{padding:5px 10px;font-size:.92em}.sg{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.sg button{background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:999px;padding:6px 12px;font-size:.84em;cursor:pointer;text-align:left;transition:border-color .15s,transform .15s}.sg button:hover{border-color:var(--ac)}.sg button:active{transform:scale(.97)}.ms{display:block;color:var(--mu);font-size:.78em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}.ms mark{background:none;color:var(--ac)}.codes{font-family:var(--cf);font-size:.85em;white-space:pre-wrap;background:var(--s2);padding:10px;border-radius:10px;border:1px solid var(--bd);user-select:all;margin-top:8px}
+.adg{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}.adg label{display:block;font-size:.8em;color:var(--mu)}.adg label,#admb .f>label+.adg{margin-bottom:4px}.adg input,.adg select{width:100%}.lrow{flex-wrap:wrap}.lact{display:flex;gap:6px;flex-wrap:wrap;width:100%;padding-bottom:6px}.lact .ghost{padding:5px 10px;font-size:.92em}.sg{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.sg button{background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:999px;padding:6px 12px;font-size:.84em;cursor:pointer;text-align:left;transition:border-color .15s,transform .15s}.sg button:hover{border-color:var(--ac)}.sg button:active{transform:scale(.97)}.ms{display:block;color:var(--mu);font-size:.78em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}.ms mark{background:none;color:var(--ac)}.vis{margin:2px 0 10px;border:1px solid var(--bd);border-radius:16px;overflow:hidden;background:var(--s1)}.vfr{width:100%;background:#0b0f14}.vfr img{display:block;width:100%;height:100%;object-fit:contain;user-select:none}.vact{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;border-top:1px solid var(--bd)}.vact button{padding:5px 11px;border-radius:999px;background:var(--s2);border:1px solid var(--bd);color:var(--tx);font-size:.8em;cursor:pointer}.vact button:hover{border-color:var(--ac)}.vact button:disabled{opacity:.6;cursor:wait}.vishid .code[data-l=svg],.vishid .code[data-l=xml]{display:none}.gprog.r3x2{aspect-ratio:3/2}.codes{font-family:var(--cf);font-size:.85em;white-space:pre-wrap;background:var(--s2);padding:10px;border-radius:10px;border:1px solid var(--bd);user-select:all;margin-top:8px}
 .lrow{display:flex;gap:8px;align-items:center;font-size:.8em;padding:6px 0;border-bottom:1px solid var(--bd)}.lrow code{font-family:var(--cf);flex:1}.lrow .hint{white-space:nowrap}
 .m.u .acts{opacity:0;justify-content:flex-end;transition:opacity .15s}.m.u:hover .acts,.m.u:focus-within .acts{opacity:1}.m.u .ts{text-align:right}@media(hover:none){.m.u .acts{opacity:.7}}
 .mtr{width:100%;text-align:left;padding:8px 2px 2px;font-size:.8em}.mtr span{display:flex;justify-content:space-between;color:var(--mu)}.mtr em{font-style:normal}.mtr b{color:var(--tx)}.mtr i{display:block;height:5px;border-radius:99px;background:var(--s2);margin:6px 0 4px;overflow:hidden}.mtr u{display:block;height:100%;width:0;border-radius:99px;background:var(--ac);transition:width .5s cubic-bezier(.2,.9,.3,1),background-color .3s}.mtr.warn u{background:var(--er)}.mtr.warn b{color:var(--er)}.mtr small{color:var(--mu);font-size:.95em}
@@ -703,6 +703,7 @@ function bub(r,txt,an,img,ix,ts,m){
  $('#w').appendChild(d);return d.querySelector('.b')}
 function acts(b,last,u,m){
  if(!u&&m&&m.gen&&typeof genMedia=='function')genMedia(b,m);
+ if(!u&&m&&m.vis&&typeof visMedia=='function')visMedia(b,m);
  if(!u&&m&&m.src&&m.src.length){const s=document.createElement('div');s.className='srcs';s.innerHTML='<span class="hint">Sumber</span>'+m.src.map((x,i)=>`<a href="${esc(x.u)}" target="_blank" rel="noopener" title="${esc(x.t)}">${i+1} · ${esc(hostOf(x.u))}</a>`).join('');b.appendChild(s)}
  const a=document.createElement('div');a.className='acts';
  if(!u&&m&&m.gen){genActs(a,last);b.appendChild(a);return}
@@ -772,7 +773,7 @@ const guessTitle=(c,l)=>{const m=c.match(/<title>([^<]{1,50})<\/title>/i);return
 
 /* ===== AI ===== */
 function projCtx(){const p=cur&&cur.pid&&D.proj.find(x=>x.id==cur.pid);if(!p)return'';let k='';(p.know||[]).forEach(f=>{k+='\n--- '+f.n+' ---\n'+f.t});return '\n\n[Proyek: '+p.name+']'+(p.ins?'\nInstruksi proyek: '+p.ins:'')+(k?'\nPengetahuan proyek:'+k.slice(0,14000):'')}
-async function ask(onTok,extra,mo){
+async function ask(onTok,extra,mo,opt){
  const s=S(),ef=effCfg(),sys=MODES[cur.mode][1]+(s.art?ARTI:'')+FILEI+(PER[s.persona]&&PER[s.persona][1]?'\n'+PER[s.persona][1]:'')+(s.mem&&s.smem?'\nInfo tentang pengguna: '+s.mem:'')+(s.smem&&U()&&U().name?'\nNama pengguna: '+U().name+'. Panggil dengan nama hanya sesekali, saat terasa natural.':'')+(s.smem&&D.mems&&D.mems.length?'\nKamu sudah mengenal pengguna lewat hal-hal berikut. Pakai seperti teman yang ingat: hanya bila nyambung dengan pembicaraan, jangan membacakan semuanya, dan jangan menyebut kata memori atau catatan. Sesekali (paling banyak sekali per percakapan) boleh menyambung ke hal itu secara alami bila konteksnya pas, mis. menanyakan kabar proyeknya:'+memText():'')+(s.sys?'\n'+s.sys:'')+(ef.sys?'\n'+ef.sys:'')+(s.inj?'\nWaktu sekarang: '+nowStr()+'.':'')+projCtx()+(extra||''),ms=cur.msgs.slice(-20);
  let vi=-1;ms.forEach((m,i)=>{if(m.img)vi=i});
  let m=MODELS.find(x=>x.id==(mo||s.model))||MODELS[0];
@@ -781,10 +782,12 @@ async function ask(onTok,extra,mo){
  const part=u=>({type:'image_url',image_url:{url:u}});
  const full=(x,i)=>x.c+(x.docs&&x.docs.length?x.docs.map(d=>'\n\n['+d.n+']\n'+d.t.slice(0,i>=ms.length-2?24000:5000)).join(''):'');
  lastM=m.n;
- const h=ms.map((x,i)=>({role:x.r,content:x.img?(i==vi?[{type:'text',text:full(x,i)},part(x.img)]:full(x,i)+' [gambar]'):full(x,i)}));
+ const lv=ms.map(x=>x.vis?1:0).lastIndexOf(1);
+ const h=ms.map((x,i)=>({role:x.r,content:x.vis&&i!=lv?x.c.replace(/```[\s\S]*?```/g,'[gambar SVG dibuat sebelumnya]'):x.img?(i==vi?[{type:'text',text:full(x,i)},part(x.img)]:full(x,i)+' [gambar]'):full(x,i)}));
  const body={model:m.id,stream:true};
  if(!m.nt)body.temperature=s.temp;
  if(ef.re&&!m.nt)body.reasoning_effort=ef.re;if(ef.mt&&!m.nt)body.max_tokens=ef.mt;
+ if(opt&&opt.mt&&!m.nt)body.max_tokens=opt.mt;
  body.messages=[{role:'system',content:sys},...h];
  lastIn=estTok(JSON.stringify(body.messages).replace(/data:[^"]{200,}/g,'x'))+(vi>=0?800:0);
  if(overLim()){limHit();throw Error('Batas token tercapai. Reset dalam '+resetTxt()+'.')}
@@ -801,18 +804,19 @@ async function reply(o){
  o=o||{};busyUI(true);ctl=new AbortController();
  $$('.m.a [data-a=rg],.m.a [data-a=rgm],.m.a .vn').forEach(x=>x.remove());sugClear();
  const b=bub('assistant','',1),bc=b.querySelector('.bc');bc.innerHTML='<div class="dots"><i></i><i></i><i></i></div>';stick(1);
- let out='',raf=0,src=null,ex='';const paint=()=>{raf=0;bc.innerHTML=md(out,0,src)+'<span class="caret"></span>';stick()};
+ const vk=o.keep&&o.keep.vis?o.keep.vis:visKind(),ved=!!(vk&&cur.msgs.length>1&&(()=>{const p=cur.msgs[cur.msgs.length-2];return p&&p.r=='assistant'&&p.vis})());
+ let out='',raf=0,src=null,ex=vk?visDirective(vk,ved):'';const paint=()=>{raf=0;bc.innerHTML=vk?visPlace(out):md(out,0,src)+'<span class="caret"></span>';stick()};
  try{
-  if(S().web&&AVW&&isPro()){const q=lastUserText();if(q&&needsWeb(q)){bc.innerHTML='<div class="dots"><i></i><i></i><i></i></div><div class="hint" style="margin-top:6px">Mencari di web…</div>';
+  if(S().web&&AVW&&isPro()&&!vk){const q=lastUserText();if(q&&needsWeb(q)){bc.innerHTML='<div class="dots"><i></i><i></i><i></i></div><div class="hint" style="margin-top:6px">Mencari di web…</div>';
    try{const r=await webSearch(q,ctl.signal);if(r.length){src=r;ex=webCtx(r);bc.innerHTML='<div class="dots"><i></i><i></i><i></i></div><div class="hint" style="margin-top:6px">Menemukan '+r.length+' sumber, menulis jawaban…</div>'}}catch(e){if(e.name=='AbortError')throw e;toast('Pencarian web gagal: '+e.message)}}}
-  await ask(t=>{out=t;if(!raf)raf=requestAnimationFrame(paint)},ex,o.model)}
+  await ask(t=>{out=t;if(!raf)raf=requestAnimationFrame(paint)},ex,o.model,vk?{mt:isPro()?8000:4096}:null)}
  catch(e){if(e.name!='AbortError')out+=(out?'\n\n':'')+'⚠️ '+(e.message=='Failed to fetch'?'Tidak bisa terhubung ke server. Periksa koneksi internet.':e.message)}
  if(raf)cancelAnimationFrame(raf);
  if(out&&!out.startsWith('⚠️')){usage(lastIn+estTok(out));meterUI(1);usageSync()}
  const mEl=b.closest('.m'),bad=out.startsWith('⚠️');
  if(o.keep&&(!out||bad)){cur.msgs.push(o.keep);if(bad)toast(out.replace(/^⚠️\s*/,''));drawMsgs();save();busyUI(false);side();stick();return}
  if(out){
-  const ts=Date.now(),m={r:'assistant',c:out,t:ts,mdl:lastM};if(src)m.src=src;
+  const ts=Date.now(),m={r:'assistant',c:out,t:ts,mdl:lastM};if(src)m.src=src;if(vk&&/<svg/i.test(out))m.vis=vk;
   if(o.keep){const k=o.keep,vs=k.v&&k.v.length?k.v.slice():[{c:k.c,t:k.t,src:k.src,m:k.mdl}];vs.push({c:out,t:ts,src:src||undefined,m:lastM});while(vs.length>8)vs.shift();m.v=vs;m.vi=vs.length-1}
   cur.msgs.push(m);cur.t=ts;bc.innerHTML=md(out,1,src);
   b.insertAdjacentHTML('beforeend',`<div class="ts" title="${esc(fullT(ts))}">${fmtT(ts)}${lastM?' · '+esc(lastM):''}</div>`);
@@ -1949,7 +1953,7 @@ async function genDecide(t){
  return{kind:j.intent,ratio:['1:1','16:9','9:16'].includes(j.ratio)?j.ratio:'1:1',ep}}
 function genMaybe(t){
  if(!GENV.enabled)return false;
- const prev=genPrev();if(!(GMEDIA.test(t)||(prev&&t.length<140&&GFOLLOW.test(t))))return false;
+ const prev=genPrev();if(!((GMEDIA.test(t)&&PHOTO.test(t))||(prev&&t.length<140&&GFOLLOW.test(t))))return false;
  genFlow(t);return true}
 async function genFlow(t){
  busyUI(true);ctl=new AbortController();
@@ -2193,6 +2197,94 @@ async function sugGo(b,out){
  b.insertAdjacentHTML('beforeend','<div class="sg">'+arr.map(x=>'<button data-sg="'+esc(x)+'">'+esc(x)+'</button>').join('')+'</div>');
  stick();usageSync()}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-sg]');if(b){const t=b.dataset.sg;sugClear();send(t)}});
+
+/* ===== gambar, desain, dan animasi dari kode (SVG), tampil langsung di obrolan ===== */
+const VA=/\b(buat(kan|in)?|bikin(kan)?|gambar(kan)?|lukis(kan)?|desain(kan)?|rancang(kan)?|ilustrasikan|animasikan|generate|create|draw|design|make)\b/i;
+const VN=/(gambar|ilustrasi|poster|logo|banner|infografis|infografik|diagram|denah|peta|\bmap\b|animasi|video|kartu|ikon|icon|sampul|cover|wallpaper|mockup|layout|sketsa|konsep|karakter|maskot|stiker|sticker|emblem|badge|pola|pattern|brosur|flyer|undangan|sertifikat|thumbnail|bagan|flowchart|grafik)/i;
+const VX=/(kode|code|fungsi|function|script|program|website|\bweb\b|situs|landing|aplikasi|\bapp\b|\bapi\b|database|query|\bbot\b|html|css|javascript|python|react|tabel|spreadsheet|excel|dokumen|esai|artikel|cerita|puisi|email|surat|resep)/i;
+const VVID=/(video|animasi|bergerak|animated|motion|klip|reel|\bgif\b)/i;
+const VEDIT=/(ganti|ubah|tambah(kan)?|hapus|kurangi|perbesar|perkecil|lebih|warna|geser|pindah|variasi|revisi|perbaiki|animasikan|buat(kan)? (jadi|versi))/i;
+const PHOTO=/(foto|realistis|nyata|photo|sinematik|cinematic|hiper|3d render|render 3d|ai generator|pakai ai|dengan ai)/i;
+function visKind(){
+ if(!cur)return null;
+ const ms=cur.msgs;let ui=-1;for(let i=ms.length-1;i>=0;i--)if(ms[i].r=='user'){ui=i;break}
+ if(ui<0)return null;const u=ms[ui];if(u.img||(u.docs&&u.docs.length))return null;
+ const t=(u.c||'').trim(),prev=ms[ui-1];
+ if(prev&&prev.r=='assistant'&&prev.vis&&t.length<220&&VEDIT.test(t)&&!VX.test(t))return VVID.test(t)?'video':prev.vis;
+ if(t.length>600||!VA.test(t)||!VN.test(t)||VX.test(t))return null;
+ return VVID.test(t)?'video':'image'}
+function visDirective(k,edit){
+ const base='\n\n[KARYA VISUAL DARI KODE] Pengguna meminta '+(k=='video'?'animasi/video':'gambar atau desain')+'. Wujudkan SEKARANG sebagai SATU blok kode ```svg yang lengkap dan langsung tampil sebagai gambar di obrolan. Aturan: pakai viewBox="0 0 1200 800" (poster atau potret: 0 0 1080 1350, cerita atau reel: 0 0 1080 1920), tanpa <script>, tanpa font atau gambar eksternal. Buat KAYA dan profesional, bukan sketsa sederhana: latar berlapis (belakang, tengah, depan), gradien linear dan radial, cahaya dan glow (filter feGaussianBlur atau feDropShadow), bayangan, tekstur atau pola halus, detail kecil (bintang, partikel, lampu, tanaman), proporsi dan komposisi yang jelas, palet 4 sampai 5 warna yang selaras, judul dengan font-family sans-serif tebal bila perlu teks. Untuk bangunan, ruangan, atau peta pakai sudut pandang isometrik atau tampak atas dengan label angka dan legenda. Untuk lembar konsep (mis. map, karakter, produk) susun beberapa panel: render utama, tampak atas, detail, legenda. Minimal 60 elemen bermakna, tetapi tetap valid dan tertutup dengan benar (akhiri dengan </svg>).';
+ const an=k=='video'?' Ini ANIMASI: hidupkan dengan <animate>, <animateTransform>, <set> atau CSS @keyframes di dalam <style>; semua gerakan berulang (repeatCount="indefinite"), durasi siklus 6 sampai 10 detik, ada beberapa gerakan berbeda (latar, objek utama, cahaya, partikel) dan transisi halus.':'';
+ const ed=edit?' Ini PERMINTAAN UBAH: ambil SVG dari gambar sebelumnya di percakapan, terapkan perubahan yang diminta, dan keluarkan SVG LENGKAP yang sudah diperbarui (bukan potongan).':'';
+ return base+an+ed+' Setelah blok kode, tulis 1 sampai 2 kalimat singkat yang menjelaskan hasilnya. Jangan menjelaskan kode.'}
+function visPlace(out){
+ const i=out.indexOf('```'),pre=i>=0?out.slice(0,i):out;
+ return(pre.trim()?md(pre,0):'')+`<div class="gprog r3x2"><div class="gsh"></div><div class="gl">Menggambar… ${fN(out.length)} karakter</div></div>`}
+function visRaw(t){
+ let m=t.match(/```(?:svg|xml|html)?[^\n]*\n([\s\S]*?)(?:```|$)/);let s=m&&/<svg/i.test(m[1])?m[1]:null;
+ if(!s){const k=t.indexOf('<svg');if(k>=0)s=t.slice(k)}
+ if(!s)return '';const k=s.search(/<svg/i);return k>=0?s.slice(k):''}
+function svgRepair(s){
+ if(/<\/svg>\s*$/i.test(s))return s;
+ const e=s.lastIndexOf('</svg>');if(e>=0)return s.slice(0,e+6);
+ s=s.replace(/<[^>]*$/,'');const st=[],re=/<(\/?)([a-zA-Z][\w:-]*)([^>]*?)(\/?)>/g;let m;
+ while((m=re.exec(s))){if(m[1]){const i=st.lastIndexOf(m[2]);if(i>=0)st.length=i}else if(!m[4]&&!/^(br|hr|img|input|meta|link)$/i.test(m[2]))st.push(m[2])}
+ return s+st.reverse().map(x=>'</'+x+'>').join('')}
+function svgClean(s){
+ s=svgRepair(s);
+ s=s.replace(/<script[\s\S]*?<\/script>/gi,'').replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi,'').replace(/\son\w+\s*=\s*("[^"]*"|'[^']*')/gi,'').replace(/(href|xlink:href)\s*=\s*("|')\s*(https?:|javascript:|data:text)[^"']*\2/gi,'');
+ if(!/<svg[^>]*xmlns=/i.test(s))s=s.replace(/<svg/i,'<svg xmlns="http://www.w3.org/2000/svg"');
+ return s}
+function svgBox(s){
+ const r=s.match(/<svg[^>]*>/i),h=r?r[0]:'',vb=h.match(/viewBox\s*=\s*["']\s*([-\d.]+)[ ,]+([-\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)/i);
+ if(vb&&+vb[3]>0&&+vb[4]>0)return{w:+vb[3],h:+vb[4]};
+ const w=h.match(/\swidth\s*=\s*["']?([\d.]+)/i),hh=h.match(/\sheight\s*=\s*["']?([\d.]+)/i);
+ return w&&hh&&+w[1]>0&&+hh[1]>0?{w:+w[1],h:+hh[1]}:{w:1200,h:800}}
+const svgUrl=s=>'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(s);
+const svgSized=(s,w,h)=>s.replace(/<svg([^>]*)>/i,(m,a)=>'<svg'+a.replace(/\s(width|height)\s*=\s*("[^"]*"|'[^']*')/gi,'')+' width="'+w+'" height="'+h+'">');
+const svgAnim=s=>/<animate|<set\b|@keyframes|animation\s*:/i.test(s);
+function svgDur(s){let m=0,r;const re=/\bdur\s*=\s*["']([\d.]+)(ms|s)?/gi;while((r=re.exec(s)))m=Math.max(m,(+r[1])/(r[2]=='ms'?1000:1));
+ const re2=/animation(?:-duration)?\s*:[^;}]*?([\d.]+)(ms|s)\b/gi;while((r=re2.exec(s)))m=Math.max(m,(+r[1])/(r[2]=='ms'?1000:1));
+ return Math.min(15,Math.max(4,m||8))}
+function visMedia(b,m){
+ const raw=visRaw(m.c);if(!raw)return;
+ const svg=svgClean(raw),box=svgBox(svg),an=svgAnim(svg),bc=b.querySelector('.bc');
+ const card=document.createElement('div');card.className='vis';card.dataset.k=m.vis;
+ card.innerHTML=`<div class="vfr" style="aspect-ratio:${box.w}/${box.h}"><img alt="Hasil dari kode" draggable="false"></div><div class="vact"><button data-v="dl">Unduh PNG</button><button data-v="sv">Unduh SVG</button>${an?'<button data-v="wm">Rekam video</button>':''}<button data-v="ed">Ubah</button><button data-v="co">Lihat kode</button>${GENV&&GENV.enabled&&isPro()?'<button data-v="ph">Versi foto realistis</button>':''}</div>`;
+ card.querySelector('img').src=svgUrl(svg);card._svg=svg;card._box=box;
+ if(bc){b.insertBefore(card,bc);bc.classList.add('vishid')}else b.appendChild(card)}
+const visDl=(blob,n)=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};
+function visPng(svg,box){
+ return new Promise((ok,no)=>{const s=Math.min(2400/Math.max(box.w,box.h),3),W=Math.round(box.w*s),H=Math.round(box.h*s),im=new Image();
+  im.onload=()=>{try{const c=document.createElement('canvas');c.width=W;c.height=H;c.getContext('2d').drawImage(im,0,0,W,H);c.toBlob(b=>b?ok(b):no(Error('PNG gagal dibuat')),'image/png')}catch(e){no(e)}};
+  im.onerror=()=>no(Error('Gambar tidak bisa dirender'));im.src=svgUrl(svgSized(svg,W,H))})}
+async function visRec(card,btn){
+ if(!window.MediaRecorder)return toast('Peramban ini belum mendukung perekaman video');
+ const svg=card._svg,box=card._box,W=1280,H=Math.max(2,Math.round(W*box.h/box.w/2)*2),dur=svgDur(svg)*1000;
+ const im=new Image();im.style.cssText='position:fixed;left:0;top:0;width:'+W+'px;height:'+H+'px;opacity:.01;pointer-events:none;z-index:-1';
+ await new Promise((ok,no)=>{im.onload=ok;im.onerror=()=>no(Error('Animasi tidak bisa dirender'));im.src=svgUrl(svgSized(svg,W,H));document.body.appendChild(im)});
+ const cv=document.createElement('canvas');cv.width=W;cv.height=H;const cx=cv.getContext('2d');
+ const mt=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(x=>MediaRecorder.isTypeSupported(x));
+ const rec=new MediaRecorder(cv.captureStream(30),mt?{mimeType:mt,videoBitsPerSecond:6e6}:undefined),ch=[];
+ rec.ondataavailable=e=>{if(e.data&&e.data.size)ch.push(e.data)};
+ const done=new Promise(ok=>rec.onstop=ok),t0=performance.now(),lab=btn.textContent;
+ rec.start(200);
+ await new Promise(ok=>{const f=()=>{const el=performance.now()-t0;cx.fillStyle='#000';cx.fillRect(0,0,W,H);cx.drawImage(im,0,0,W,H);btn.textContent='Merekam… '+Math.ceil((dur-el)/1000)+' dtk';if(el>=dur)ok();else requestAnimationFrame(f)};f()});
+ rec.stop();await done;im.remove();btn.textContent=lab;
+ const blob=new Blob(ch,{type:'video/webm'});if(!blob.size)throw Error('Rekaman kosong');
+ visDl(blob,'animasi-auralis.webm');toast('Video WebM diunduh ('+Math.round(blob.size/1024)+' KB)')}
+document.addEventListener('click',async e=>{
+ const bt=e.target.closest&&e.target.closest('[data-v]');if(!bt)return;
+ const card=bt.closest('.vis'),d=bt.dataset.v;if(!card)return;
+ try{
+  if(d=='dl'){bt.disabled=true;visDl(await visPng(card._svg,card._box),'gambar-auralis.png');bt.disabled=false}
+  else if(d=='sv')visDl(new Blob([card._svg],{type:'image/svg+xml'}),'gambar-auralis.svg');
+  else if(d=='wm'){bt.disabled=true;try{await visRec(card,bt)}finally{bt.disabled=false}}
+  else if(d=='co'){const bc=card.parentElement.querySelector('.bc');if(bc){bc.classList.toggle('vishid');bt.textContent=bc.classList.contains('vishid')?'Lihat kode':'Sembunyikan kode'}}
+  else if(d=='ed'){const t=$('#in');t.value='Ubah gambar tadi: ';t.focus();t.setSelectionRange(t.value.length,t.value.length)}
+  else if(d=='ph'){const mm=card.closest('.m'),ix=mm?+mm.dataset.i:-1,u=cur&&cur.msgs.slice(0,ix).reverse().find(x=>x.r=='user');if(!u||busy)return;genRun({prompt:u.c,kind:card.dataset.k=='video'?'video':'image',ratio:'1:1'})}
+ }catch(er){bt.disabled=false;toast(er.message||'Gagal')}});
 
 boot();
 </script></body></html>
