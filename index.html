@@ -146,7 +146,7 @@ pre{padding:12px;overflow:auto;font:.84em/1.55 var(--cf);color:#e3ece6}
 .comp{padding:10px 16px 14px;position:relative}
 .cbox{max-width:var(--mw);margin:0 auto;display:flex;gap:8px;align-items:flex-end;background:var(--s1);border:1px solid var(--bd);border-radius:18px;padding:8px;transition:border-color .2s,box-shadow .3s,background-color .4s}
 .cbox:focus-within{border-color:var(--ac);box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 20%,transparent)}
-.cbox textarea{border:0;background:none;resize:none;max-height:150px;padding:9px}
+.cbox textarea{border:0;background:none;resize:none;max-height:360px;padding:9px;overflow-y:hidden;scrollbar-width:thin}
 .ib.rec{color:var(--er);animation:bn .8s infinite}
 .send{background:var(--ac);color:var(--onac)}.send:hover{color:var(--onac);background:var(--ac);filter:brightness(1.08)}
 .send.has{animation:glow 2s ease-in-out infinite}.send.stop{background:var(--er);animation:none}
@@ -793,8 +793,7 @@ async function ask(onTok,extra,mo){
  if(!r.ok){let e='Permintaan gagal ('+r.status+')';try{const j=await r.json();e=j.error?.message||e;if(j.error&&j.error.code=='quota'){limHit();usageSync()}}catch{}throw Error(e)}
  const rd=r.body.getReader(),dc=new TextDecoder();let buf='',out='';
  for(;;){const{done,value}=await rd.read();if(done)break;buf+=dc.decode(value,{stream:true});const ls=buf.split('\n');buf=ls.pop();
-  for(const l of ls){if(!l.startsWith('data:'))continue;const d=l.slice(5).trim();if(d=='[DONE]')continue;let j;try{j=JSON.parse(d)}catch{continue}if(j.error)throw Error(j.error.message||'Gateway error');const t=j.choices?j.choices[0]?.delta?.content:(j.type=='content_block_delta'?j.delta.text:'');if(t){out+=t;onTok(out)}}}
- if(!out)throw Error('Model tidak mengembalikan jawaban. Coba ulangi atau pilih model lain.');
+  for(const l of ls){if(!l.startsWith('data:'))continue;const d=l.slice(5).trim();if(d=='[DONE]')continue;try{const j=JSON.parse(d),t=j.choices?j.choices[0]?.delta?.content:(j.type=='content_block_delta'?j.delta.text:'');if(t){out+=t;onTok(out)}}catch{}}}
  return out}
 function busyUI(v){busy=v;$('#app').classList.toggle('busy',v);$('#go').textContent=v?'■':'➤';$('#go').classList.toggle('stop',v);setSend()}
 const setSend=()=>$('#go').classList.toggle('has',!busy&&(!!$('#in').value.trim()||!!atts.length));
@@ -804,8 +803,8 @@ async function reply(o){
  const b=bub('assistant','',1),bc=b.querySelector('.bc');bc.innerHTML='<div class="dots"><i></i><i></i><i></i></div>';stick(1);
  let out='',raf=0,src=null,ex='';const paint=()=>{raf=0;bc.innerHTML=md(out,0,src)+'<span class="caret"></span>';stick()};
  try{
-  if(S().web&&AVW&&isPro()){const q=lastUserText();if(q){bc.innerHTML='<div class="dots"><i></i><i></i><i></i></div><div class="hint" style="margin-top:6px">Mencari di web…</div>';
-   try{const r=await webSearch(q,ctl.signal);if(r.length){src=r;ex=webCtx(r)}}catch(e){if(e.name=='AbortError')throw e;toast('Pencarian web gagal: '+e.message)}}}
+  if(S().web&&AVW&&isPro()){const q=lastUserText();if(q&&needsWeb(q)){bc.innerHTML='<div class="dots"><i></i><i></i><i></i></div><div class="hint" style="margin-top:6px">Mencari di web…</div>';
+   try{const r=await webSearch(q,ctl.signal);if(r.length){src=r;ex=webCtx(r);bc.innerHTML='<div class="dots"><i></i><i></i><i></i></div><div class="hint" style="margin-top:6px">Menemukan '+r.length+' sumber, menulis jawaban…</div>'}}catch(e){if(e.name=='AbortError')throw e;toast('Pencarian web gagal: '+e.message)}}}
   await ask(t=>{out=t;if(!raf)raf=requestAnimationFrame(paint)},ex,o.model)}
  catch(e){if(e.name!='AbortError')out+=(out?'\n\n':'')+'⚠️ '+(e.message=='Failed to fetch'?'Tidak bisa terhubung ke server. Periksa koneksi internet.':e.message)}
  if(raf)cancelAnimationFrame(raf);
@@ -840,7 +839,7 @@ async function send(t){
  const prev=cur.msgs[cur.msgs.length-1],ts=Date.now(),msg={r:'user',c:t,img,t:ts};if(docs.length)msg.docs=docs;
  cur.msgs.push(msg);if(cur.msgs.length==1)cur.title=t.slice(0,40);cur.t=ts;
  atts=[];renderAtt();meterUI();
- $('#in').value='';$('#in').style.height='auto';slashHide();save();side();drawTitle();drawSub(1);
+ $('#in').value='';slashHide();save();side();drawTitle();drawSub(1);
  if(cur.msgs.length==1)$('#w').innerHTML='';
  if(S().dsep&&(!prev||!prev.t||dayKey(prev.t)!=dayKey(ts)))$('#w').insertAdjacentHTML('beforeend',`<div class="dsep">${dayLbl(ts)}</div>`);
  acts(bub('user',t,1,img,cur.msgs.length-1,ts,msg),0,1);stick(1);
@@ -855,7 +854,10 @@ function slashUpdate(){const v=$('#in').value;if(!v.startsWith('/')||/[\s\n]/.te
 function slashHide(){$('#slash').classList.add('hide');sList=[]}
 function slashPick(i){const p=sList[i];if(!p)return;const t=$('#in');t.value=p[1];slashHide();t.focus();t.dispatchEvent(new Event('input'))}
 $('#slash').onmousedown=e=>{const b=e.target.closest('button');if(b){e.preventDefault();slashPick(+b.dataset.i)}};
-$('#in').oninput=e=>{e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,150)+'px';setSend();slashUpdate()};
+function fitIn(){const t=$('#in');if(!t)return;t.style.height='auto';const mx=Math.max(120,Math.min(Math.round(innerHeight*.45),360)),h=t.scrollHeight;t.style.maxHeight=mx+'px';t.style.height=Math.min(h,mx)+'px';t.style.overflowY=h>mx+1?'auto':'hidden'}
+(function(){const t=$('#in'),d=Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value');Object.defineProperty(t,'value',{configurable:true,get(){return d.get.call(this)},set(v){d.set.call(this,v);fitIn()}})})();
+$('#in').oninput=e=>{fitIn();setSend();slashUpdate()};
+addEventListener('resize',fitIn);$('#in').addEventListener('focus',fitIn);
 $('#in').onkeydown=e=>{
  if(sList.length&&!$('#slash').classList.contains('hide')){
   if(e.key=='ArrowDown'||e.key=='ArrowUp'){e.preventDefault();sIdx=(sIdx+(e.key=='ArrowDown'?1:-1)+sList.length)%sList.length;slashUpdate();return}
@@ -1478,10 +1480,20 @@ const SEARCHAPI=window.AURALIS_SEARCH||'/api/search';let AVW=false;
 async function loadAVW(){try{AVW=!!(await(await fetch(SEARCHAPI)).json()).enabled}catch{AVW=false}webBtn()}
 function webBtn(){const b=$('#web');if(b)b.classList.toggle('on',!!(D&&S().web&&AVW&&isPro()))}
 $('#web').onclick=()=>{if(!isPro())return proView('web');if(!AVW)return toast('Pencarian web belum diatur di server (pasang api/search.js dan kunci Tavily atau Brave)');S().web=!S().web;save();webBtn();toast(S().web?'Pencarian web aktif':'Pencarian web mati')};
+const WSC=new Map();
 async function webSearch(q,signal){
- const r=await fetch(SEARCHAPI+'?q='+encodeURIComponent(q),{signal,headers:LH()});let j={};try{j=await r.json()}catch{}
- if(!r.ok)throw Error((j.error&&j.error.message)||'Server '+r.status);
- return(j.results||[]).filter(x=>/^https?:\/\//i.test(x.url)).slice(0,5).map(x=>({t:String(x.title||x.url).slice(0,120),u:x.url,s:String(x.snippet||'').slice(0,400)}))}
+ const k=q.toLowerCase(),h=WSC.get(k);if(h&&Date.now()-h.t<3e5)return h.r;
+ const c=new AbortController();let to=false;const tm=setTimeout(()=>{to=true;c.abort()},7000),f=()=>c.abort();if(signal)signal.addEventListener('abort',f);
+ try{
+  const r=await fetch(SEARCHAPI+'?q='+encodeURIComponent(q),{signal:c.signal,headers:LH()});let j={};try{j=await r.json()}catch(e){}
+  if(!r.ok)throw Error((j.error&&j.error.message)||'Server '+r.status);
+  const out=(j.results||[]).filter(x=>/^https?:\/\//i.test(x.url)).slice(0,5).map(x=>({t:String(x.title||x.url).slice(0,120),u:x.url,s:String(x.snippet||'').slice(0,400)}));
+  WSC.set(k,{t:Date.now(),r:out});if(WSC.size>30)WSC.delete(WSC.keys().next().value);return out}
+ catch(e){if(to)throw Error('pencarian terlalu lama, jawaban dibuat tanpa web');throw e}
+ finally{clearTimeout(tm);if(signal)signal.removeEventListener('abort',f)}}
+const needsWeb=q=>{const t=q.trim().toLowerCase();if(t.length<14)return false;
+ if(t.length<40&&/^(halo|hai|hi|hello|terima kasih|makasih|thanks|oke|ok|siap|lanjut|mantap|sip)\b/.test(t))return false;
+ if(/^(tulis|buat|buatkan|bikin|perbaiki|debug|refactor|ubah|terjemahkan|ringkas|rangkum|tolong (tulis|buat))\b.*\b(kode|code|fungsi|script|html|css|javascript|python|program|puisi|cerita|email|surat)\b/.test(t))return false;return true};
 const webCtx=r=>'\n\nHasil pencarian web (pakai bila relevan dan kutip dengan [nomor] di akhir kalimat; abaikan bila tidak relevan):\n'+r.map((x,i)=>`[${i+1}] ${x.t} — ${x.s} (${x.u})`).join('\n');
 const lastUserText=()=>{for(let i=cur.msgs.length-1;i>=0;i--)if(cur.msgs[i].r=='user')return cur.msgs[i].c.replace(/\s+/g,' ').trim().slice(0,250);return ''};
 
