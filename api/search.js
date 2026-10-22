@@ -7,6 +7,25 @@ const BRV = (process.env.BRAVE_API_KEY || '').trim();
 const TAV_URL = (process.env.TAVILY_URL || 'https://api.tavily.com/search').trim();
 const BRV_URL = (process.env.BRAVE_URL || 'https://api.search.brave.com/res/v1/web/search').trim();
 
+
+// --- Pro: verifikasi token lisensi (PRO_SECRET). Bila PRO_SECRET kosong, sistem Pro nonaktif dan semua fitur terbuka. ---
+const PRO_SECRET = (process.env.PRO_SECRET || '').trim();
+const _enc = new TextEncoder();
+const _unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+async function isPro(req) {
+  if (!PRO_SECRET) return true;
+  const t = req.headers.get('x-license') || '';
+  const [body, sig] = t.split('.');
+  if (!body || !sig) return false;
+  try {
+    const k = await crypto.subtle.importKey('raw', _enc.encode(PRO_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
+    if (!(await crypto.subtle.verify('HMAC', k, _unb64u(sig), _enc.encode(body)))) return false;
+    const p = JSON.parse(new TextDecoder().decode(_unb64u(body)));
+    return p.p === 'pro' && p.e > Date.now();
+  } catch { return false; }
+}
+const PRO_ERR = { error: { message: 'Fitur ini khusus Pro. Buka menu Atur > Langganan untuk upgrade.', code: 'pro_required' } };
+
 const hits = new Map();
 function limited(ip) {
   const now = Date.now(), LIM = +process.env.SEARCH_RATE_LIMIT || 30, WIN = 10 * 60e3;
@@ -26,7 +45,7 @@ export default async function handler(req) {
   const ok = !origin || origin === own || allow.includes(origin);
   const cors = {
     'access-control-allow-origin': ok && origin ? origin : own,
-    'access-control-allow-headers': 'content-type',
+    'access-control-allow-headers': 'content-type,x-license',
     'access-control-allow-methods': 'GET,OPTIONS',
     vary: 'origin',
   };
@@ -42,6 +61,7 @@ export default async function handler(req) {
   const q = (u.searchParams.get('q') || '').trim();
   if (!q) return J({ enabled });
   if (!enabled) return E('Pencarian web belum diatur di server', 503);
+  if (!(await isPro(req))) return J(PRO_ERR, 402);
   if (q.length > 300) return E('Pertanyaan terlalu panjang', 400);
 
   const ip = (req.headers.get('x-forwarded-for') || 'x').split(',')[0].trim();
@@ -54,6 +74,7 @@ export default async function handler(req) {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: 'Bearer ' + TAV },
         body: JSON.stringify({ query: q, max_results: 5, search_depth: 'basic' }),
+        signal: AbortSignal.timeout(6500),
       });
       if (!r.ok) return E('Layanan pencarian menolak permintaan (' + r.status + ')', 502);
       const j = await r.json();
@@ -61,6 +82,7 @@ export default async function handler(req) {
     } else {
       const r = await fetch(BRV_URL + '?count=5&q=' + encodeURIComponent(q), {
         headers: { accept: 'application/json', 'x-subscription-token': BRV },
+        signal: AbortSignal.timeout(6500),
       });
       if (!r.ok) return E('Layanan pencarian menolak permintaan (' + r.status + ')', 502);
       const j = await r.json();
@@ -68,7 +90,8 @@ export default async function handler(req) {
     }
     results = results.filter(x => httpOnly(x.url)).slice(0, 5).map(x => ({ ...x, snippet: x.snippet.slice(0, 400) }));
     return J({ results });
-  } catch {
+  } catch (e) {
+    if (e && (e.name === 'TimeoutError' || e.name === 'AbortError')) return E('Pencarian terlalu lama', 504);
     return E('Layanan pencarian tidak bisa dihubungi', 502);
   }
 }
