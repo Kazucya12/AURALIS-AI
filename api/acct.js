@@ -33,6 +33,13 @@ const pwOf = (salt, ph) => mac('pw|' + salt + '|' + ph);
 const akey = async email => 'auralis:acct:' + (await sha(email));
 
 const hits = new Map();
+
+// Statistik harian (Asia/Jakarta): penghitung ringan di Upstash, tersimpan 40 hari. Gagal diam-diam.
+const dayKey = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+async function stat(name, by) { try { const k = 'auralis:st:' + dayKey() + ':' + name, n = await kv(by ? ['INCRBY', k, by] : ['INCR', k]); if (n === (by || 1)) await kv(['EXPIRE', k, 40 * 86400]); } catch {} }
+
+const BAD_MAIL = new Set(('mailinator.com,guerrillamail.com,10minutemail.com,tempmail.com,temp-mail.org,yopmail.com,trashmail.com,throwawaymail.com,sharklasers.com,getnada.com,maildrop.cc,dispostable.com,fakeinbox.com,mintemail.com,moakt.com,emailondeck.com,mohmal.com,tmpmail.org,burnermail.io,discard.email,' + (process.env.BLOCK_EMAIL_DOMAINS || '')).split(',').map(x => x.trim().toLowerCase()).filter(Boolean));
+const SIGNUP_DAY = +process.env.SIGNUP_PER_IP_DAY || 5;
 function limited(key, LIM) {
   const now = Date.now(), WIN = 10 * 60e3, a = (hits.get(key) || []).filter(t => now - t < WIN);
   if (a.length >= LIM) return true;
@@ -73,9 +80,14 @@ export default async function handler(req) {
     if (d.action === 'register') {
       const ph = String(d.ph || '');
       if (!HEX.test(ph)) return E('Permintaan tidak valid', 400);
+      if (BAD_MAIL.has(email.split('@')[1])) { await stat('blocked'); return E('Email sementara tidak diterima. Pakai email yang kamu gunakan sehari-hari.', 400, 'mail'); }
+      const rk = 'auralis:rg:' + (await sha(ip)), rn = await kv(['INCR', rk]);
+      if (rn === 1) await kv(['EXPIRE', rk, 86400]);
+      if (rn > SIGNUP_DAY) { await stat('blocked'); return E('Terlalu banyak akun baru dari jaringan ini hari ini. Coba lagi besok.', 429, 'ipcap'); }
       const salt = rand(16), a = { email, salt, pw: await pwOf(salt, ph), ...clean(d.name, d.color), t: Date.now() };
       const set = await kv(['SET', key, JSON.stringify(a), 'NX']);
       if (set !== 'OK') return E('Email sudah terdaftar. Silakan masuk.', 409, 'exists');
+      await stat('signup');
       return J({ ok: true, profile: prof(a) });
     }
 
