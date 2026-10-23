@@ -42,6 +42,13 @@ async function adminOk(req) {
   } catch { return false; }
 }
 
+const dayKey = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+async function stat(name) { try { const k = 'auralis:st:' + dayKey() + ':' + name, n = await kv(['INCR', k]); if (n === 1) await kv(['EXPIRE', k, 40 * 86400]); } catch {} }
+const sha = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
+const TRIAL_DAYS = process.env.TRIAL_DAYS === undefined || process.env.TRIAL_DAYS === '' ? 1 : Math.min(Math.max(+process.env.TRIAL_DAYS || 0, 0), 14);
+const REF_BONUS = Math.min(Math.max(process.env.TRIAL_REF_BONUS === undefined ? 1 : +process.env.TRIAL_REF_BONUS || 0, 0), 7);
+const REF_DAYS = Math.min(Math.max(+process.env.REF_REWARD_DAYS || 2, 1), 30), REF_MAX = 10;
+const RC = /^[A-Za-z0-9]{8,16}$/;
 const hits = new Map();
 function limited(key, LIM) {
   const now = Date.now(), WIN = 10 * 60e3, a = (hits.get(key) || []).filter(t => now - t < WIN);
@@ -64,7 +71,7 @@ export default async function handler(req) {
     let plans = [];
     try { plans = JSON.parse(process.env.PRO_PLANS || '[]').slice(0, 4).map(x => ({ d: +x.d || 30, n: String(x.n || 'Pro').slice(0, 40), p: String(x.p || '').slice(0, 30) })); } catch { plans = []; }
     let auto = false; try { auto = !!(process.env.MIDTRANS_SERVER_KEY || '').trim() && JSON.parse(process.env.PRO_PLANS || '[]').some(x => +x.a >= 1000); } catch { auto = false; }
-    return J({ enabled, auto, payUrl: /^https?:\/\//i.test(process.env.PRO_PAY_URL || '') ? process.env.PRO_PAY_URL.trim() : '', contact: /^https?:\/\//i.test(process.env.PRO_CONTACT || '') ? process.env.PRO_CONTACT.trim() : '', plans });
+    return J({ enabled, trial: enabled && TRIAL_DAYS > 0, trialDays: TRIAL_DAYS, refDays: REF_DAYS, refBonus: REF_BONUS, auto, payUrl: /^https?:\/\//i.test(process.env.PRO_PAY_URL || '') ? process.env.PRO_PAY_URL.trim() : '', contact: /^https?:\/\//i.test(process.env.PRO_CONTACT || '') ? process.env.PRO_CONTACT.trim() : '', plans });
   }
   if (req.method !== 'POST') return E('Method tidak didukung', 405);
   if (!enabled) return E('Langganan Pro belum diatur di server', 503);
@@ -92,6 +99,41 @@ export default async function handler(req) {
       await kv(['SET', key, JSON.stringify(lic)]);
       const te = Math.min(lic.exp, now + TOKEN_DAYS * 864e5);
       return J({ ok: true, q: lic.q || 0, token: await sign({ p: 'pro', e: te, c: code.slice(4, 12), q: lic.q || 0 }), te, exp: lic.exp });
+    }
+
+    // Lisensi pendek (trial / hadiah referral): satu perangkat, tanpa penyimpanan ekstra
+    const mini = async (days, note, dev) => {
+      const now = Date.now(), c = newCode(), exp = now + days * 864e5;
+      await kv(['SET', 'auralis:lic:' + c, JSON.stringify({ d: days, max: 1, note, q: 0, made: now, act: now, devs: [dev], exp, rev: false })]);
+      await kv(['SADD', 'auralis:lic:index', c]);
+      const te = Math.min(exp, now + TOKEN_DAYS * 864e5);
+      return { ok: true, q: 0, token: await sign({ p: 'pro', e: te, c: c.slice(4, 12), q: 0 }), te, exp, code: fmt(c) };
+    };
+    if (b.action === 'trial') {
+      if (!TRIAL_DAYS) return E('Trial gratis sedang tidak tersedia.', 403);
+      if (limited('t' + ip, 6)) return E('Terlalu banyak percobaan. Coba lagi nanti.', 429);
+      const dev = String(b.dev || '').slice(0, 40);
+      if (!dev) return E('Permintaan tidak valid', 400);
+      const okIp = await kv(['SET', 'auralis:trial:i:' + (await sha(ip)), '1', 'NX', 'EX', 30 * 86400]);
+      if (okIp !== 'OK') { await stat('trial_denied'); return E('Trial gratis sudah pernah dipakai dari jaringan ini.', 403); }
+      const okDev = await kv(['SET', 'auralis:trial:d:' + (await sha(dev)), '1', 'NX', 'EX', 30 * 86400]);
+      if (okDev !== 'OK') { await stat('trial_denied'); return E('Trial gratis sudah pernah dipakai di perangkat ini.', 403); }
+      const ref = RC.test(String(b.ref || '')) && String(b.ref) !== String(b.rc || '') ? String(b.ref) : '';
+      let days = TRIAL_DAYS;
+      if (ref && REF_BONUS) { days += REF_BONUS; await kv(['INCR', 'auralis:ref:' + ref]); await stat('ref'); }
+      await stat('trial');
+      return J(await mini(days, ref ? 'trial+ref' : 'trial', dev));
+    }
+    if (b.action === 'refinfo' || b.action === 'refclaim') {
+      const rc = String(b.rc || ''), dev = String(b.dev || '').slice(0, 40);
+      if (!RC.test(rc)) return E('Permintaan tidak valid', 400);
+      const n = Math.min(+(await kv(['GET', 'auralis:ref:' + rc])) || 0, REF_MAX), got = +(await kv(['GET', 'auralis:refc:' + rc])) || 0, left = Math.max(n - got, 0);
+      if (b.action === 'refinfo') return J({ ok: true, invited: n, claimed: got, left, max: REF_MAX, days: REF_DAYS });
+      if (limited('rc' + ip, 6)) return E('Terlalu banyak percobaan. Coba lagi nanti.', 429);
+      if (!left || !dev) return E('Belum ada undangan yang bisa diklaim.', 400);
+      if ((await kv(['INCR', 'auralis:refc:' + rc])) > n) { await kv(['DECR', 'auralis:refc:' + rc]); return E('Belum ada undangan yang bisa diklaim.', 400); }
+      await stat('ref_claim');
+      return J({ ...(await mini(REF_DAYS, 'hadiah referral', dev)), left: left - 1 });
     }
 
     // ---- penjual ----
