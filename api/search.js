@@ -1,11 +1,13 @@
 // Vercel Edge Function: pencarian web untuk Auralis. Letakkan sebagai api/search.js
-// Env (pilih salah satu): TAVILY_API_KEY  atau  BRAVE_API_KEY. Opsional: SEARCH_RATE_LIMIT, ALLOWED_ORIGINS.
+// Env (pilih salah satu atau keduanya): TAVILY_API_KEY, BRAVE_API_KEY. Opsional: SEARCH_RATE_LIMIT, ALLOWED_ORIGINS.
+// Bila dua kunci terpasang, keduanya dipanggil bersamaan dan hasil tercepat dipakai.
 export const config = { runtime: 'edge' };
 
 const TAV = (process.env.TAVILY_API_KEY || '').trim();
 const BRV = (process.env.BRAVE_API_KEY || '').trim();
 const TAV_URL = (process.env.TAVILY_URL || 'https://api.tavily.com/search').trim();
 const BRV_URL = (process.env.BRAVE_URL || 'https://api.search.brave.com/res/v1/web/search').trim();
+const TIMEOUT = 5000; // klien menunggu 6 detik, jadi server harus menyerah lebih dulu
 
 
 // --- Pro: verifikasi token lisensi (PRO_SECRET). Bila PRO_SECRET kosong, sistem Pro nonaktif dan semua fitur terbuka. ---
@@ -37,6 +39,28 @@ function limited(ip) {
 
 const clean = s => String(s || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 const httpOnly = u => /^https?:\/\//i.test(u || '');
+const bad = r => Object.assign(new Error('http ' + r.status), { status: r.status });
+
+async function tavily(q) {
+  const r = await fetch(TAV_URL, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: 'Bearer ' + TAV },
+    body: JSON.stringify({ query: q, max_results: 5, search_depth: 'basic' }),
+    signal: AbortSignal.timeout(TIMEOUT),
+  });
+  if (!r.ok) throw bad(r);
+  const j = await r.json();
+  return (j.results || []).map(x => ({ title: clean(x.title), url: x.url, snippet: clean(x.content) }));
+}
+async function brave(q) {
+  const r = await fetch(BRV_URL + '?count=5&q=' + encodeURIComponent(q), {
+    headers: { accept: 'application/json', 'x-subscription-token': BRV },
+    signal: AbortSignal.timeout(TIMEOUT),
+  });
+  if (!r.ok) throw bad(r);
+  const j = await r.json();
+  return ((j.web && j.web.results) || []).map(x => ({ title: clean(x.title), url: x.url, snippet: clean(x.description) }));
+}
 
 export default async function handler(req) {
   const origin = req.headers.get('origin') || '';
@@ -68,30 +92,16 @@ export default async function handler(req) {
   if (limited(ip)) return E('Terlalu banyak pencarian. Coba lagi beberapa menit lagi.', 429);
 
   try {
-    let results = [];
-    if (TAV) {
-      const r = await fetch(TAV_URL, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: 'Bearer ' + TAV },
-        body: JSON.stringify({ query: q, max_results: 5, search_depth: 'basic' }),
-        signal: AbortSignal.timeout(6500),
-      });
-      if (!r.ok) return E('Layanan pencarian menolak permintaan (' + r.status + ')', 502);
-      const j = await r.json();
-      results = (j.results || []).map(x => ({ title: clean(x.title), url: x.url, snippet: clean(x.content) }));
-    } else {
-      const r = await fetch(BRV_URL + '?count=5&q=' + encodeURIComponent(q), {
-        headers: { accept: 'application/json', 'x-subscription-token': BRV },
-        signal: AbortSignal.timeout(6500),
-      });
-      if (!r.ok) return E('Layanan pencarian menolak permintaan (' + r.status + ')', 502);
-      const j = await r.json();
-      results = ((j.web && j.web.results) || []).map(x => ({ title: clean(x.title), url: x.url, snippet: clean(x.description) }));
-    }
+    const jobs = [];
+    if (TAV) jobs.push(tavily(q));
+    if (BRV) jobs.push(brave(q));
+    let results = await Promise.any(jobs); // yang tercepat berhasil dipakai; gagal hanya bila semuanya gagal
     results = results.filter(x => httpOnly(x.url)).slice(0, 5).map(x => ({ ...x, snippet: x.snippet.slice(0, 400) }));
     return J({ results });
   } catch (e) {
-    if (e && (e.name === 'TimeoutError' || e.name === 'AbortError')) return E('Pencarian terlalu lama', 504);
+    const er = (e && e.errors && e.errors[0]) || e;
+    if (er && (er.name === 'TimeoutError' || er.name === 'AbortError')) return E('Pencarian terlalu lama', 504);
+    if (er && er.status) return E('Layanan pencarian menolak permintaan (' + er.status + ')', 502);
     return E('Layanan pencarian tidak bisa dihubungi', 502);
   }
 }
