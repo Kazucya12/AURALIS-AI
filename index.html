@@ -419,8 +419,8 @@ write:['Tulis','Kamu penulis profesional. Sesuaikan nada dan gaya dengan permint
 analyze:['Analisis','Kamu analis tajam. Pecah masalah menjadi langkah, bandingkan opsi dengan kelebihan dan kekurangannya (tabel bila cocok), akhiri dengan kesimpulan dan rekomendasi yang jelas.']};
 const FILEI='\nSaat menulis kode: tulis kode LENGKAP dan siap dijalankan, jangan dipotong atau diganti dengan "...". Taruh nama berkas setelah nama bahasa pada baris pembuka blok kode, mis. ```html index.html, ```css style.css, ```js script.js, ```python main.py, ```json package.json, ```java Main.java. Bila proyek butuh lebih dari satu berkas, buat satu blok per berkas dengan namanya masing-masing dan hubungkan lewat jalur relatif (<link href="style.css">, <script src="script.js">). Jenis berkas apa pun boleh: HTML, CSS, JS, TS, Python, Java, C/C++, C#, Go, Rust, PHP, SQL, JSON, YAML, Markdown, shell, dan lainnya.';
 const ARTI='\nJika pengguna meminta halaman web, aplikasi mini, tampilan UI, animasi, atau diagram visual, tulis SATU file HTML lengkap (CSS dan JS inline, tanpa file eksternal) dalam satu blok ```html agar bisa dipratinjau sebagai artefak. Untuk gambar vektor gunakan blok ```svg. Jangan memotong kode.';
-const DEF={theme:'dark',acc:'lamp',font:15,lh:1.55,ff:'hyper',rf:'serif',v3:1,amem:true,cf:'jb',dens:'normal',anim:'full',bg:true,enter:true,
-temp:.7,eff:1,sug:true,intent:true,sys:'',persona:'default',mem:'',smem:true,art:true,model:'glm-5.3',
+const DEF={theme:'dark',acc:'lamp',font:15,lh:1.55,ff:'hyper',rf:'serif',v3:1,amem:false,cf:'jb',dens:'normal',anim:'full',bg:true,enter:true,
+temp:.7,eff:1,sug:false,intent:true,sys:'',persona:'default',mem:'',smem:true,art:true,model:'glm-5.3',
 voice:'',rate:1,pitch:1,tvol:1,auto:false,lang:'id-ID',vauto:false,
 snd:true,sndk:'lembut',vol:60,sndSend:false,vib:true,nt:false,qh:false,qf:'22:00',qt:'07:00',
 tz:'auto',h24:true,ts:true,dsep:true,clk:false,inj:true,
@@ -808,13 +808,13 @@ function autoPick(img){
  if(hard)return pro?has('deepseek-v4-pro')||has('glm-5.3'):has('glm-5.3');
  return quick?has('glm-5.3-flash')||has('glm-5.3'):has('glm-5.3')||MODELS[0]}
 async function ask(onTok,extra,mo,opt){
- const s=S(),ef=effCfg(),sys=MODES[cur.mode][1]+(s.intent!==false&&cur.mode!='code'?INTENT:'')+(s.art?ARTI:'')+FILEI+(PER[s.persona]&&PER[s.persona][1]?'\n'+PER[s.persona][1]:'')+(s.mem&&s.smem?'\nInfo tentang pengguna: '+s.mem:'')+(s.smem&&U()&&U().name?'\nNama pengguna: '+U().name+'. Panggil dengan nama hanya sesekali, saat terasa natural.':'')+(s.smem&&D.mems&&D.mems.length?'\nKamu sudah mengenal pengguna lewat hal-hal berikut. Pakai seperti teman yang ingat: hanya bila nyambung dengan pembicaraan, jangan membacakan semuanya, dan jangan menyebut kata memori atau catatan. Sesekali (paling banyak sekali per percakapan) boleh menyambung ke hal itu secara alami bila konteksnya pas, mis. menanyakan kabar proyeknya:'+memText():'')+(s.sys?'\n'+s.sys:'')+(ef.sys?'\n'+ef.sys:'')+(s.inj?'\nWaktu sekarang: '+nowStr()+'.':'')+projCtx()+(extra||''),ms=cur.msgs.slice(-20);
+ const s=S(),ef=effCfg(),sys=MODES[cur.mode][1]+(s.intent!==false&&cur.mode!='code'?INTENT:'')+(s.art?ARTI:'')+FILEI+(PER[s.persona]&&PER[s.persona][1]?'\n'+PER[s.persona][1]:'')+(s.mem&&s.smem?'\nInfo tentang pengguna: '+s.mem:'')+(s.smem&&U()&&U().name?'\nNama pengguna: '+U().name+'. Panggil dengan nama hanya sesekali, saat terasa natural.':'')+(s.smem&&D.mems&&D.mems.length?'\nKamu sudah mengenal pengguna lewat hal-hal berikut. Pakai seperti teman yang ingat: hanya bila nyambung dengan pembicaraan, jangan membacakan semuanya, dan jangan menyebut kata memori atau catatan. Sesekali (paling banyak sekali per percakapan) boleh menyambung ke hal itu secara alami bila konteksnya pas, mis. menanyakan kabar proyeknya:'+memText():'')+(s.sys?'\n'+s.sys:'')+(ef.sys?'\n'+ef.sys:'')+(s.inj?'\nWaktu sekarang: '+nowStr()+'.':'')+projCtx()+(extra||''),ms=cur.msgs.slice(-12);
  let vi=-1;ms.forEach((m,i)=>{if(m.img)vi=i});
  let m=MODELS.find(x=>x.id==(mo||s.model))||MODELS[0];
  if(PROM.has(m.id)&&!isPro()){m=MODELS.find(x=>x.id==DEF.model)||MODELS[0];toast('Model Pro tidak tersedia di paket Gratis. Memakai '+m.n)}
  if(vi>=0&&!m.v){const f=MODELS.find(x=>x.v&&AV[x.p]);if(f){m=f;toast('Gambar dianalisis dengan '+f.n)}}
  const part=u=>({type:'image_url',image_url:{url:u}});
- const full=(x,i)=>x.c+(x.docs&&x.docs.length?x.docs.map(d=>'\n\n['+d.n+']\n'+d.t.slice(0,i>=ms.length-2?24000:5000)).join(''):'');
+ const full=(x,i)=>(x.r=='assistant'&&i<ms.length-3?x.c.replace(/```[^\n`]*\n[\s\S]{600,}?```/g,'[kode panjang dihilangkan]'):x.c)+(x.docs&&x.docs.length?x.docs.map(d=>'\n\n['+d.n+']\n'+d.t.slice(0,i>=ms.length-2?24000:1500)).join(''):'');
  if(m.id=='auto'){m=autoPick(vi>=0);toast('Auto memilih '+m.n)}
  lastM=m.n;
  const lv=ms.map(x=>x.vis?1:0).lastIndexOf(1);
@@ -826,14 +826,14 @@ async function ask(onTok,extra,mo,opt){
  body.messages=[{role:'system',content:sys},...h];
  lastIn=estTok(JSON.stringify(body.messages).replace(/data:[^"]{200,}/g,'x'))+(vi>=0?800:0);
  if(overLim()){limHit();throw Error('Batas token tercapai. Reset dalam '+resetTxt()+'.')}
- const wc=ctl,wd=setTimeout(()=>{wc.__to=1;wc.abort()},120000);
+ const wc=ctl;let wd=0;const arm=ms=>{clearTimeout(wd);wd=setTimeout(()=>{wc.__to=1;wc.abort()},ms)};arm(45000);
  const r=await fetch(API,{method:'POST',signal:ctl.signal,headers:{'content-type':'application/json',...LH()},body:JSON.stringify({p:m.p,body})});
  if(r.status==402)proView('model');
  if(!r.ok){let e='Permintaan gagal ('+r.status+')';try{const j=await r.json();e=j.error?.message||e;if(j.error&&j.error.code=='quota'){limHit();usageSync()}}catch{}throw Error(e)}
  const rd=r.body.getReader(),dc=new TextDecoder();let buf='',out='';
  for(;;){const{done,value}=await rd.read();if(done)break;buf+=dc.decode(value,{stream:true});const ls=buf.split('\n');buf=ls.pop();
-  for(const l of ls){if(!l.startsWith('data:'))continue;const d=l.slice(5).trim();if(d=='[DONE]')continue;try{const j=JSON.parse(d),t=j.choices?j.choices[0]?.delta?.content:(j.type=='content_block_delta'?j.delta.text:'');if(t){clearTimeout(wd);out+=t;onTok(out)}}catch{}}}
- return out}
+  for(const l of ls){if(!l.startsWith('data:'))continue;const d=l.slice(5).trim();if(d=='[DONE]')continue;try{const j=JSON.parse(d),dl=j.choices?j.choices[0]?.delta:null,t=dl?dl.content:(j.type=='content_block_delta'?j.delta.text:'');if(dl&&(dl.reasoning_content||dl.reasoning||t))arm(60000);if(t){out+=t;onTok(out)}}catch{}}}
+ clearTimeout(wd);return out}
 function busyUI(v){busy=v;$('#app').classList.toggle('busy',v);$('#go').textContent=v?'■':'➤';$('#go').classList.toggle('stop',v);setSend()}
 const setSend=()=>$('#go').classList.toggle('has',!busy&&(!!$('#in').value.trim()||!!atts.length));
 async function reply(o){
@@ -1536,9 +1536,7 @@ async function webSearch(q,signal){
   WSC.set(k,{t:Date.now(),r:out});if(WSC.size>30)WSC.delete(WSC.keys().next().value);return out}
  catch(e){if(WSKIP){WSKIP=false;return[]}if(to)throw Error('pencarian terlalu lama, jawaban dibuat tanpa web');throw e}
  finally{clearTimeout(tm);if(signal)signal.removeEventListener('abort',f)}}
-const needsWeb=q=>{const t=q.trim().toLowerCase();if(t.length<8)return false;
- if(t.length<40&&/^(halo|hai|hi|hello|terima kasih|makasih|thanks|oke|ok|siap|lanjut|mantap|sip)\b/.test(t))return false;
- if(/^(tulis|buat|buatkan|bikin|perbaiki|debug|refactor|ubah|terjemahkan|ringkas|rangkum|tolong (tulis|buat))\b.*\b(kode|code|fungsi|script|html|css|javascript|python|program|puisi|cerita|email|surat)\b/.test(t))return false;return true};
+const needsWeb=q=>{const t=q.trim().toLowerCase();if(t.length<12)return false;return /\b(terbaru|terkini|sekarang|hari ini|kemarin|berita|harga|kurs|cuaca|skor|jadwal|rilis|update|trending|latest|news|price|today|current|202[5-9])\b|siapa (presiden|ceo|menteri|gubernur)/.test(t)};
 const webCtx=r=>'\n\nHasil pencarian web (pakai bila relevan dan kutip dengan [nomor] di akhir kalimat; abaikan bila tidak relevan):\n'+r.map((x,i)=>`[${i+1}] ${x.t} — ${x.s} (${x.u})`).join('\n');
 const lastUserText=()=>{for(let i=cur.msgs.length-1;i>=0;i--)if(cur.msgs[i].r=='user')return cur.msgs[i].c.replace(/\s+/g,' ').trim().slice(0,250);return ''};
 
@@ -2454,14 +2452,16 @@ async function admStats(o){
  try{
   const r=await fetch(LOGAPI+'?stats=1',{headers:{'x-admin-session':ADM}});const j=await r.json();
   if(!r.ok)throw Error((j.error&&j.error.message)||'Server '+r.status);
-  const t=j.rows[0],y=j.rows[1]||{},rows=j.rows.slice().reverse(),mx=Math.max(1,...rows.map(x=>x.chat));
+  const t=j.rows[0],y=j.rows[1]||{},rows=j.rows.slice().reverse(),mx=Math.max(1,...rows.map(x=>x.chat)),mxt=Math.max(1,...rows.map(x=>x.tok||0)),tmod=Object.entries(j.tmodels||{}).sort((a,b)=>b[1]-a[1]).slice(0,6),ttot=tmod.reduce((a,x)=>a+x[1],0)||1;
   const tile=(n,l)=>`<div class="stc"><b>${n}</b><span class="hint">${l}</span></div>`;
   const mod=Object.entries(j.models).sort((a,b)=>b[1]-a[1]).slice(0,6),tot=mod.reduce((a,x)=>a+x[1],0)||1;
   const fb=Object.entries(j.fb);
-  box.innerHTML=`<div class="stg">${tile(t.chat,'pesan hari ini')}${tile(t.signup,'akun baru')}${tile(t.trial,'trial')}${tile(t.err,'error')}${tile(t.up+' / '+t.dn,'👍 / 👎')}${tile(j.lic,'kode Pro')}</div>
+  box.innerHTML=`<div class="stg">${tile(t.chat,'pesan hari ini')}${tile(fK(t.tok||0),'token hari ini')}${tile(t.chat?fK(Math.round((t.tok||0)/t.chat)):'0','token rata-rata/pesan')}${tile(t.signup,'akun baru')}${tile(t.trial,'trial')}${tile(t.err,'error')}${tile(t.up+' / '+t.dn,'👍 / 👎')}${tile(j.lic,'kode Pro')}</div>
   <div class="pvw"><div class="bars">${rows.map((d,i)=>`<div title="${esc(d.d)}: ${d.chat} pesan"><span>${d.chat}</span><i style="--h:${Math.round(d.chat/mx*100)}%;--i:${i}"></i><span>${esc(d.d.slice(8))}</span></div>`).join('')}</div></div>
-  <p class="hint">Kemarin: ${y.chat||0} pesan, ${y.signup||0} akun baru. Diblokir (anti-abuse): ${t.blocked} hari ini. Referral: ${t.ref} undangan, ${t.ref_claim} klaim.</p>
+  <div class="hint" style="margin-top:8px">Token per hari (14 hari)</div><div class="pvw"><div class="bars">${rows.map((d,i)=>`<div title="${esc(d.d)}: ${fN(d.tok||0)} token"><span>${fK(d.tok||0)}</span><i style="--h:${Math.round((d.tok||0)/mxt*100)}%;--i:${i}"></i><span>${esc(d.d.slice(8))}</span></div>`).join('')}</div></div>
+  <p class="hint">Kemarin: ${y.chat||0} pesan, ${fK(y.tok||0)} token, ${y.signup||0} akun baru. Diblokir (anti-abuse): ${t.blocked} hari ini. Referral: ${t.ref} undangan, ${t.ref_claim} klaim.</p>
   ${mod.length?'<div class="hint">Model terpakai (7 hari)</div>'+mod.map(x=>`<div class="kn"><span>${esc(x[0])}</span><b>${Math.round(x[1]/tot*100)}% · ${x[1]}</b></div>`).join(''):''}
+  ${tmod.length?'<div class="hint" style="margin-top:8px">Token per model (7 hari)</div>'+tmod.map(x=>`<div class="kn"><span>${esc(x[0])}</span><b>${Math.round(x[1]/ttot*100)}% · ${fK(x[1])}</b></div>`).join(''):''}
   ${fb.length?'<div class="hint" style="margin-top:8px">Umpan balik per model</div>'+fb.map(x=>`<div class="kn"><span>${esc(x[0].replace(/_/g,' '))}</span><b>👍 ${x[1].up||0} · 👎 ${x[1].dn||0}</b></div>`).join(''):''}
   <details style="margin-top:8px"><summary class="hint">Error terbaru (${j.errs.length})</summary>${j.errs.length?j.errs.map(e=>`<div class="kn"><span><code>${esc(e.m)}</code><br><span class="hint">${esc(new Date(e.t).toLocaleString('id-ID',{timeZone:TZ()}))} · ${esc(e.w||'')} · ${esc(e.ua||'')}</span></span></div>`).join(''):'<p class="hint">Belum ada.</p>'}</details>`;
  }catch(e){box.innerHTML='<p class="hint">Statistik belum tersedia: '+esc(e.message)+'. Pastikan api/log.js sudah di-deploy.</p>'}}
