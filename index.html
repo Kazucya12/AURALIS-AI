@@ -420,7 +420,7 @@ analyze:['Analisis','Kamu analis tajam. Pecah masalah menjadi langkah, bandingka
 const FILEI='\nSaat menulis kode: tulis kode LENGKAP dan siap dijalankan, jangan dipotong atau diganti dengan "...". Taruh nama berkas setelah nama bahasa pada baris pembuka blok kode, mis. ```html index.html, ```css style.css, ```js script.js, ```python main.py, ```json package.json, ```java Main.java. Bila proyek butuh lebih dari satu berkas, buat satu blok per berkas dengan namanya masing-masing dan hubungkan lewat jalur relatif (<link href="style.css">, <script src="script.js">). Jenis berkas apa pun boleh: HTML, CSS, JS, TS, Python, Java, C/C++, C#, Go, Rust, PHP, SQL, JSON, YAML, Markdown, shell, dan lainnya.';
 const ARTI='\nJika pengguna meminta halaman web, aplikasi mini, tampilan UI, animasi, atau diagram visual, tulis SATU file HTML lengkap (CSS dan JS inline, tanpa file eksternal) dalam satu blok ```html agar bisa dipratinjau sebagai artefak. Untuk gambar vektor gunakan blok ```svg. Jangan memotong kode.';
 const DEF={theme:'dark',acc:'lamp',font:15,lh:1.55,ff:'hyper',rf:'serif',v3:1,amem:false,cf:'jb',dens:'normal',anim:'full',bg:true,enter:true,
-temp:.7,eff:1,sug:false,intent:true,sys:'',persona:'default',mem:'',smem:true,art:true,model:'glm-5.3',
+temp:.7,eff:1,sug:false,sum:true,intent:true,sys:'',persona:'default',mem:'',smem:true,art:true,model:'glm-5.3',
 voice:'',rate:1,pitch:1,tvol:1,auto:false,lang:'id-ID',vauto:false,
 snd:true,sndk:'lembut',vol:60,sndSend:false,vib:true,nt:false,qh:false,qf:'22:00',qt:'07:00',
 tz:'auto',h24:true,ts:true,dsep:true,clk:false,inj:true,
@@ -729,7 +729,7 @@ function acts(b,last,u,m){
  if(!u&&m&&m.vis&&typeof visMedia=='function')visMedia(b,m);
  if(!u&&m&&m.src&&m.src.length){const s=document.createElement('div');s.className='srcs';s.innerHTML='<span class="hint">Sumber</span>'+m.src.map((x,i)=>`<a href="${esc(x.u)}" target="_blank" rel="noopener" title="${esc(x.t)}">${i+1} · ${esc(hostOf(x.u))}</a>`).join('');b.appendChild(s)}
  const a=document.createElement('div');a.className='acts';
- if(!u&&m&&m.gen){genActs(a,last);b.appendChild(a);return}
+ if(!u&&m&&m.gen){genActs(a,last,m);b.appendChild(a);return}
  a.innerHTML=u?'<button data-a="ed">Edit</button>'+(m&&m.alts&&m.alts.length>1?`<span class="vn"><button data-a="bp" aria-label="Cabang sebelumnya">‹</button><span>${m.ai+1}/${m.alts.length}</span><button data-a="bn" aria-label="Cabang berikutnya">›</button></span>`:'')+(last&&!busy?'<button data-a="ans">Minta jawaban</button>':''):'<button data-a="cp">Salin</button><button data-a="tt">Suara</button><button data-a="sh1">Bagikan</button><button data-a="up" class="rx'+(m&&m.fb==1?' on':'')+'" aria-label="Jawaban bagus">👍</button><button data-a="dn" class="rx'+(m&&m.fb==-1?' on':'')+'" aria-label="Jawaban kurang bagus">👎</button>'+(typeof codeActs=='function'?codeActs(m):'')+(last?'<button data-a="rg">Ulangi</button><button data-a="rgm" title="Ulangi dengan model lain">Model lain</button>'+(m&&m.v&&m.v.length>1?`<span class="vn"><button data-a="vp" aria-label="Versi sebelumnya">‹</button><span>${m.vi+1}/${m.v.length}</span><button data-a="vn" aria-label="Versi berikutnya">›</button></span>`:''):'');
  b.appendChild(a)}
 function speak(t,force){
@@ -808,7 +808,7 @@ function autoPick(img){
  if(hard)return pro?has('deepseek-v4-pro')||has('glm-5.3'):has('glm-5.3');
  return quick?has('glm-5.3-flash')||has('glm-5.3'):has('glm-5.3')||MODELS[0]}
 async function ask(onTok,extra,mo,opt){
- const s=S(),ef=effCfg(),sys=MODES[cur.mode][1]+(s.intent!==false&&cur.mode!='code'?INTENT:'')+(s.art?ARTI:'')+FILEI+(PER[s.persona]&&PER[s.persona][1]?'\n'+PER[s.persona][1]:'')+(s.mem&&s.smem?'\nInfo tentang pengguna: '+s.mem:'')+(s.smem&&U()&&U().name?'\nNama pengguna: '+U().name+'. Panggil dengan nama hanya sesekali, saat terasa natural.':'')+(s.smem&&D.mems&&D.mems.length?'\nKamu sudah mengenal pengguna lewat hal-hal berikut. Pakai seperti teman yang ingat: hanya bila nyambung dengan pembicaraan, jangan membacakan semuanya, dan jangan menyebut kata memori atau catatan. Sesekali (paling banyak sekali per percakapan) boleh menyambung ke hal itu secara alami bila konteksnya pas, mis. menanyakan kabar proyeknya:'+memText():'')+(s.sys?'\n'+s.sys:'')+(ef.sys?'\n'+ef.sys:'')+(s.inj?'\nWaktu sekarang: '+nowStr()+'.':'')+projCtx()+(extra||''),ms=cur.msgs.slice(-12);
+ const s=S(),ef=effCfg(),sys=MODES[cur.mode][1]+(s.intent!==false&&cur.mode!='code'?INTENT:'')+(s.art?ARTI:'')+FILEI+(PER[s.persona]&&PER[s.persona][1]?'\n'+PER[s.persona][1]:'')+(s.mem&&s.smem?'\nInfo tentang pengguna: '+s.mem:'')+(s.smem&&U()&&U().name?'\nNama pengguna: '+U().name+'. Panggil dengan nama hanya sesekali, saat terasa natural.':'')+(s.smem&&D.mems&&D.mems.length?'\nKamu sudah mengenal pengguna lewat hal-hal berikut. Pakai seperti teman yang ingat: hanya bila nyambung dengan pembicaraan, jangan membacakan semuanya, dan jangan menyebut kata memori atau catatan. Sesekali (paling banyak sekali per percakapan) boleh menyambung ke hal itu secara alami bila konteksnya pas, mis. menanyakan kabar proyeknya:'+memText():'')+(s.sys?'\n'+s.sys:'')+(ef.sys?'\n'+ef.sys:'')+(s.inj?'\nWaktu sekarang: '+nowStr()+'.':'')+projCtx()+sumCtx()+(extra||''),ms=cur.msgs.slice(-12);
  let vi=-1;ms.forEach((m,i)=>{if(m.img)vi=i});
  let m=MODELS.find(x=>x.id==(mo||s.model))||MODELS[0];
  if(PROM.has(m.id)&&!isPro()){m=MODELS.find(x=>x.id==DEF.model)||MODELS[0];toast('Model Pro tidak tersedia di paket Gratis. Memakai '+m.n)}
@@ -827,12 +827,20 @@ async function ask(onTok,extra,mo,opt){
  lastIn=estTok(JSON.stringify(body.messages).replace(/data:[^"]{200,}/g,'x'))+(vi>=0?800:0);
  if(overLim()){limHit();throw Error('Batas token tercapai. Reset dalam '+resetTxt()+'.')}
  const wc=ctl;let wd=0;const arm=ms=>{clearTimeout(wd);wd=setTimeout(()=>{wc.__to=1;wc.abort()},ms)};arm(45000);
- const r=await fetch(API,{method:'POST',signal:ctl.signal,headers:{'content-type':'application/json',...LH()},body:JSON.stringify({p:m.p,body})});
+ /* model lambat -> otomatis pindah ke model cepat (sekali), kecuali ada gambar yang harus dianalisis */
+ const fbM=()=>{if((opt&&opt.fb)||vi>=0||/flash/.test(m.id))return null;return MODELS.find(x=>x.id=='glm-5.3-flash'&&(!x.p||AV[x.p]!==false))||null};
+ const goFb=f=>{clearTimeout(wd);ctl=new AbortController();toast('Model lambat, beralih ke '+f.n);return ask(onTok,extra,f.id,{...(opt||{}),fb:1})};
+ let r;
+ try{r=await fetch(API,{method:'POST',signal:ctl.signal,headers:{'content-type':'application/json',...LH()},body:JSON.stringify({p:m.p,body})})}
+ catch(e){if(e.name=='AbortError'&&wc.__to){const f=fbM();if(f)return goFb(f)}throw e}
  if(r.status==402)proView('model');
- if(!r.ok){let e='Permintaan gagal ('+r.status+')';try{const j=await r.json();e=j.error?.message||e;if(j.error&&j.error.code=='quota'){limHit();usageSync()}}catch{}throw Error(e)}
+ if(!r.ok){let e='Permintaan gagal ('+r.status+')',cd='';try{const j=await r.json();e=j.error?.message||e;cd=j.error&&j.error.code||'';if(cd=='quota'){limHit();usageSync()}}catch{}
+  if(cd=='slow'){const f=fbM();if(f)return goFb(f)}
+  throw Error(e)}
  const rd=r.body.getReader(),dc=new TextDecoder();let buf='',out='';
- for(;;){const{done,value}=await rd.read();if(done)break;buf+=dc.decode(value,{stream:true});const ls=buf.split('\n');buf=ls.pop();
+ try{for(;;){const{done,value}=await rd.read();if(done)break;buf+=dc.decode(value,{stream:true});const ls=buf.split('\n');buf=ls.pop();
   for(const l of ls){if(!l.startsWith('data:'))continue;const d=l.slice(5).trim();if(d=='[DONE]')continue;try{const j=JSON.parse(d),dl=j.choices?j.choices[0]?.delta:null,t=dl?dl.content:(j.type=='content_block_delta'?j.delta.text:'');if(dl&&(dl.reasoning_content||dl.reasoning||t))arm(60000);if(t){out+=t;onTok(out)}}catch{}}}
+ }catch(e){if(e.name=='AbortError'&&wc.__to&&!out){const f=fbM();if(f)return goFb(f)}throw e}
  clearTimeout(wd);return out}
 function busyUI(v){busy=v;$('#app').classList.toggle('busy',v);$('#go').textContent=v?'■':'➤';$('#go').classList.toggle('stop',v);setSend()}
 const setSend=()=>$('#go').classList.toggle('has',!busy&&(!!$('#in').value.trim()||!!atts.length));
@@ -844,7 +852,7 @@ async function reply(o){
  let out='',raf=0,src=null,ex=vk?visDirective(vk,ved):'';const paint=()=>{raf=0;bc.innerHTML=vk?visPlace(out):md(out,0,src)+'<span class="caret"></span>';stick()};
  try{
   if(S().web&&AVW&&isPro()&&!vk){const q=lastUserText();if(q&&needsWeb(q)){bc.innerHTML='<div class="dots"><i></i><i></i><i></i></div><div class="hint" style="margin-top:6px">Mencari di web… <button class="ghost" data-wskip style="padding:3px 10px;margin-left:8px;font-size:.9em">Lewati</button></div>';
-   try{const r=await webSearch(q,ctl.signal);if(r.length){src=r;ex=webCtx(r);bc.innerHTML='<div class="dots"><i></i><i></i><i></i></div><div class="hint" style="margin-top:6px">Menemukan '+r.length+' sumber, menulis jawaban…</div>'}}catch(e){if(e.name=='AbortError')throw e;toast('Pencarian web gagal: '+e.message)}}}
+   try{const r=await webSearch(q,ctl.signal);if(r.length){logPost({t:'ev',k:'web'});src=r;ex=webCtx(r);bc.innerHTML='<div class="dots"><i></i><i></i><i></i></div><div class="hint" style="margin-top:6px">Menemukan '+r.length+' sumber, menulis jawaban…</div>'}}catch(e){if(e.name=='AbortError')throw e;toast('Pencarian web gagal: '+e.message)}}}
   await ask(t=>{out=t;if(!raf)raf=requestAnimationFrame(paint)},ex,o.model,vk?{mt:isPro()?8000:4096}:null)}
  catch(e){if(ctl&&ctl.__to&&e.name=='AbortError')e=Error('Server terlalu lama menjawab. Coba kirim lagi.');if(e.name!='AbortError'){if(typeof logErr=='function'&&e.message!='Failed to fetch'&&!/Batas token|Model ini khusus/.test(e.message))logErr('ask: '+e.message,lastM||'');out+=(out?'\n\n':'')+'⚠️ '+(e.message=='Failed to fetch'?'Tidak bisa terhubung ke server. Periksa koneksi internet.':e.message)}}
  if(raf)cancelAnimationFrame(raf);
@@ -857,7 +865,7 @@ async function reply(o){
   cur.msgs.push(m);cur.t=ts;bc.innerHTML=md(out,1,src);
   b.insertAdjacentHTML('beforeend',`<div class="ts" title="${esc(fullT(ts))}">${fmtT(ts)}${lastM?' · '+esc(lastM):''}</div>`);
   acts(b,true,0,m);mEl.dataset.i=cur.msgs.length-1;mathFix(bc);done(out);if(S().auto)speak(out,1)}else mEl.remove();
- save();busyUI(false);side();stick();if(out&&!bad){memLearn();sugGo(b,out)}}
+ save();busyUI(false);side();stick();if(out&&!bad){memLearn();sugGo(b,out);sumGo()}}
 const WIN=216e5;let lastIn=0;
 const estTok=s=>Math.ceil((s||'').length/4);
 const fN=n=>Math.round(n).toLocaleString('id-ID'),fK=n=>n>=1000?(n/1000).toFixed(n>=10000?0:1).replace('.',',')+'rb':String(n);
@@ -866,6 +874,20 @@ function usage(n){const now=Date.now();if(!D.use||!D.use.s||now>=D.use.s+WIN)D.u
 function resetTxt(){const ms=D.use&&D.use.s?Math.max(0,D.use.s+WIN-Date.now()):WIN,m=Math.ceil(ms/6e4),h=Math.floor(m/60);return h?h+' jam '+(m%60)+' menit':m+' menit'}
 function overLim(){const L=TOKLIM();return L>0&&usage()>=L}
 function limHit(){if(isPro())toast('Batas '+fN(TOKLIM())+' token tercapai. Reset dalam '+resetTxt());else proView('msgs')}
+/* ===== Ringkasan otomatis percakapan panjang: pesan lama diringkas, bukan dibuang ===== */
+const SUMSYS='Kamu merangkum percakapan agar AI bisa melanjutkannya dengan konteks yang utuh. Gabungkan ringkasan sebelumnya (bila ada) dengan pesan baru menjadi satu ringkasan padat dalam bahasa Indonesia, maksimal 180 kata: tujuan pengguna, keputusan dan fakta penting (nama, angka, pilihan), hal yang sudah selesai, dan yang masih tertunda. Jangan menyalin kode; cukup sebut berkas atau fungsi yang dibahas. Tanpa pembuka, langsung isi ringkasan.';
+let sumBusy=0;
+function sumCtx(){const c=cur&&cur.sum;if(!c||!S().sum)return'';const k=cur.msgs[c.n-1];if(!k||k.t!==c.at)return'';return'\n\n[Ringkasan bagian awal percakapan ini. Pesan lama itu tidak dikirim ulang, jadi pakai ringkasan ini sebagai konteks tanpa menyebutnya:] '+c.c}
+async function sumGo(){
+ if(sumBusy||!cur||cur.tmp||!S().sum||!navigator.onLine||overLim())return;
+ const c0=cur,L=c0.msgs.length,ok=c0.sum&&c0.msgs[c0.sum.n-1]&&c0.msgs[c0.sum.n-1].t===c0.sum.at,prevN=ok?c0.sum.n:0,upto=L-12;
+ if(upto-prevN<4)return;
+ const seg=c0.msgs.slice(prevN,upto),txt=seg.map(m=>(m.r=='user'?'Pengguna: ':'AI: ')+(m.gen?'[membuat '+(m.gen.k=='video'?'video':'gambar')+': '+m.gen.p+']':String(m.c||'').replace(/```[\s\S]*?```/g,'[blok kode]').slice(0,700))).join('\n');
+ sumBusy=1;
+ try{const out=await quickAsk(SUMSYS,(ok?'Ringkasan sebelumnya:\n'+c0.sum.c+'\n\n':'')+'Pesan baru:\n'+txt,30000,'sum'),s=String(out||'').trim().slice(0,1800);
+  if(s.length>40&&c0.msgs.length>=upto&&c0.msgs[upto-1]){c0.sum={c:s,n:upto,at:c0.msgs[upto-1].t};save()}}
+ catch{}finally{sumBusy=0}}
+
 async function send(t){
  t=(t||'').trim();if((!t&&!atts.length)||busy)return;
  if(atts.some(a=>a.loading))return toast('Berkas masih dibaca…');
@@ -873,17 +895,19 @@ async function send(t){
  if(overLim())return limHit();
  sugClear();
  if(!cur)mk();
- let img=null;const docs=[];
- atts.forEach(a=>{if(a.img)img=a.img;else docs.push({n:a.name,t:a.text})});
+ let img=null,efrom=false;const docs=[];
+ atts.forEach(a=>{if(a.img){img=a.img;if(a.edit)efrom=true}else docs.push({n:a.name,t:a.text})});
  if(!t)t=docs.length?'Tolong baca dan rangkum '+(docs.length>1?'berkas-berkas ini.':'berkas ini.'):'Tolong analisis gambar ini.';
- const prev=cur.msgs[cur.msgs.length-1],ts=Date.now(),msg={r:'user',c:t,img,t:ts};if(docs.length)msg.docs=docs;
+ const prev=cur.msgs[cur.msgs.length-1],ts=Date.now(),msg={r:'user',c:t,img:efrom?null:img,t:ts};if(docs.length)msg.docs=docs;
  cur.msgs.push(msg);if(cur.msgs.length==1)cur.title=t.slice(0,40);cur.t=ts;
  atts=[];renderAtt();meterUI();
  $('#in').value='';slashHide();save();side();drawTitle();drawSub(1);
  if(cur.msgs.length==1)$('#w').innerHTML='';
  if(S().dsep&&(!prev||!prev.t||dayKey(prev.t)!=dayKey(ts)))$('#w').insertAdjacentHTML('beforeend',`<div class="dsep">${dayLbl(ts)}</div>`);
- acts(bub('user',t,1,img,cur.msgs.length-1,ts,msg),0,1);stick(1);
+ acts(bub('user',t,1,efrom?null:img,cur.msgs.length-1,ts,msg),0,1);stick(1);
  if(S().sndSend&&S().vol>0)tone([[880,.08]],S().vol/100*.2);
+ if(typeof genEditMaybe=='function'&&img&&!docs.length&&genEditMaybe(t,img))return;
+ if(efrom)msg.img=img;
  if(typeof genMaybe=='function'&&!img&&!docs.length&&genMaybe(t))return;
  reply()}
 $('#att0').onclick=()=>$('#fi').click();
@@ -1162,7 +1186,7 @@ privasi(){const has=!!S().pin;return `<h3>Privasi</h3><div class="grp">
 bagi(){return `<h3>Berbagi</h3><div class="grp">${T('sh.name','Tampilkan namaku di hasil bagikan','Jika mati, ditulis "Kamu"')}${T('sh.ts','Sertakan waktu pesan')}${T('sh.img','Sertakan gambar','Hanya untuk format HTML')}${T('sh.wm','Tanda "Dibuat dengan Auralis AI"')}</div>
  <p class="hint">Pengaturan ini berlaku saat membagikan lewat tombol ↗. Berkas dibuat di perangkatmu, tidak ada tautan publik.</p><div class="btns">${BTN('sh-open','Bagikan obrolan saat ini')}</div>`},
 persona(){return `<h3>Persona</h3><div class="grp">
- ${SEL('persona','Persona',Object.entries(PER).map(([k,v])=>[k,v[0]]))}${RNG('temp','Kreativitas',0,1.5,.1,'')}${T('intent','Pahami maksud sebenarnya','AI menebak tujuan di balik pesanmu, menyambung pesan singkat ke topik tadi, dan bertanya balik hanya bila benar-benar perlu.')}${T('sug','Saran pertanyaan lanjutan','Tombol saran di bawah jawaban. Memakai sedikit token tambahan.')}${T('art','Artefak otomatis','AI diminta menulis halaman web lengkap agar bisa dipratinjau')}
+ ${SEL('persona','Persona',Object.entries(PER).map(([k,v])=>[k,v[0]]))}${RNG('temp','Kreativitas',0,1.5,.1,'')}${T('intent','Pahami maksud sebenarnya','AI menebak tujuan di balik pesanmu, menyambung pesan singkat ke topik tadi, dan bertanya balik hanya bila benar-benar perlu.')}${T('sug','Saran pertanyaan lanjutan','Tombol saran di bawah jawaban. Memakai sedikit token tambahan.')}${T('sum','Ringkas percakapan panjang','Pesan lama diringkas otomatis supaya AI tetap ingat awal percakapan tanpa mengirim ulang semuanya. Memakai sedikit token tambahan.')}${T('art','Artefak otomatis','AI diminta menulis halaman web lengkap agar bisa dipratinjau')}
  ${T('smem','Gunakan memori')}
  ${fr('Catatan manual','Hal yang perlu AI ingat tentang kamu',`<textarea data-k="mem" rows="3" placeholder="Contoh: aku developer Roblox, suka jawaban singkat">${esc(S().mem)}</textarea>`,'col')}
  ${fr('Instruksi kustom',null,`<textarea data-k="sys" rows="2" placeholder="Contoh: jawab singkat dan santai">${esc(S().sys)}</textarea>`,'col')}</div>`},
@@ -1233,7 +1257,7 @@ async function act(d,el,root){
  else if(d=='prm-add'){const n=q('#prn').value.trim().toLowerCase().replace(/\s+/g,'-'),t=q('#prt').value.trim();if(!n||!t)return toast('Isi nama dan prompt');D.prm=D.prm||[];D.prm.push({n,t});save();renderPane()}
  else if(d=='plib'){closeAll();promptLib()}
  else if(d=='prm-del'){D.prm.splice(+el.dataset.i,1);save();renderPane()}
- else if(d=='exp-json')dl(JSON.stringify({...D,chats:D.chats.filter(c=>!c.tmp)},null,2),'auralis-data.json','application/json');
+ else if(d=='exp-json'){dl(JSON.stringify({...D,chats:D.chats.filter(c=>!c.tmp)},null,2),'auralis-data.json','application/json');D.bk=Date.now();save()}
  else if(d=='imp'){const f=q('#impf');f.onchange=async ev=>{const file=ev.target.files[0];ev.target.value='';if(!file)return;
    try{const j=JSON.parse(await file.text());if(!j||!Array.isArray(j.chats))throw 0;if(!confirm('Gabungkan data dari berkas ini ke akunmu? Data yang sudah ada tidak ditimpa.'))return;
     const ids=new Set(D.chats.map(c=>c.id));D.chats.push(...j.chats.filter(c=>c&&c.id&&!ids.has(c.id)));
@@ -1497,6 +1521,7 @@ async function readDoc(f){
  return{text,note}}
 function readImg(f){return new Promise((res,rej)=>{const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{const k=Math.min(1,768/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL('image/jpeg',.7))};im.onerror=()=>{URL.revokeObjectURL(u);rej(Error('Gambar tidak bisa dibaca'))};im.src=u})}
 function renderAtt(){
+ if(!atts.some(x=>x.edit))editForce=0;
  const a=$('#att');
  if(!atts.length){a.className='hide';a.innerHTML='';setSend();return}
  a.className='attl';
@@ -1712,10 +1737,10 @@ const rhex=n=>[...crypto.getRandomValues(new Uint8Array(n))].map(x=>x.toString(1
 const MEMBAD=/(kata sandi|password|passcode|\bpin\b|rekening|kartu kredit|\bcvv\b|\bktp\b|\bnik\b|paspor|agama|beragama|politik|partai|penyakit|diagnos|depresi|kecemasan|gaji|utang|hutang|pinjaman|orientasi seksual|\bsuku\b|\bras\b)/i;
 let memBusy=false;
 const memText=()=>{const m=D.mems||[];if(!m.length)return'';let o='';for(const x of m.slice().sort((a,b)=>b.t-a.t)){if((o+x.x).length>1500)break;o+='\n- '+x.x}return o};
-async function quickAsk(sys,user,ms){
+async function quickAsk(sys,user,ms,feat){
  const m=MODELS.find(x=>x.id=='glm-5.3-flash')||MODELS[0],c=new AbortController(),tm=setTimeout(()=>c.abort(),ms||25000);
  try{
-  const r=await fetch(API,{method:'POST',signal:c.signal,headers:{'content-type':'application/json',...LH()},body:JSON.stringify({p:m.p,body:{model:m.id,stream:true,temperature:.2,messages:[{role:'system',content:sys},{role:'user',content:user}]}})});
+  const r=await fetch(API,{method:'POST',signal:c.signal,headers:{'content-type':'application/json',...LH()},body:JSON.stringify({p:m.p,f:feat,body:{model:m.id,stream:true,temperature:.2,messages:[{role:'system',content:sys},{role:'user',content:user}]}})});
   if(!r.ok)throw Error('x');
   const rd=r.body.getReader(),dc=new TextDecoder();let buf='',out='';
   for(;;){const{done,value}=await rd.read();if(done)break;buf+=dc.decode(value,{stream:true});const ls=buf.split('\n');buf=ls.pop();
@@ -1731,7 +1756,7 @@ async function memLearn(){
  try{
   const known=(D.mems||[]).map(m=>'- '+m.x).join('\n')||'(kosong)';
   const ms=cur.msgs.slice(-4).map(m=>(m.r=='user'?'Pengguna: ':'Asisten: ')+m.c.replace(/```[\s\S]*?```/g,'[kode]').slice(0,600)).join('\n');
-  const txt=await quickAsk('Kamu mengekstrak memori jangka panjang tentang pengguna dari percakapan. Ambil hanya fakta yang tahan lama dan berguna untuk jawaban di masa depan: pekerjaan atau bidang, proyek yang sedang dikerjakan, alat atau bahasa pemrograman yang dipakai, preferensi gaya jawaban. Jangan ambil: data sensitif (kesehatan, agama, politik, keuangan, identitas, kata sandi), hal sesaat, atau apa yang sudah ada di daftar. Tulis tiap fakta sebagai satu kalimat pendek bahasa Indonesia, sudut pandang ketiga (contoh: "Pengguna membuat game Roblox dengan Lua"). Balas HANYA JSON array berisi string, maksimal 2 item, atau [] bila tidak ada.','Memori yang sudah ada:\n'+known+'\n\nPercakapan terbaru:\n'+ms);
+  const txt=await quickAsk('Kamu mengekstrak memori jangka panjang tentang pengguna dari percakapan. Ambil hanya fakta yang tahan lama dan berguna untuk jawaban di masa depan: pekerjaan atau bidang, proyek yang sedang dikerjakan, alat atau bahasa pemrograman yang dipakai, preferensi gaya jawaban. Jangan ambil: data sensitif (kesehatan, agama, politik, keuangan, identitas, kata sandi), hal sesaat, atau apa yang sudah ada di daftar. Tulis tiap fakta sebagai satu kalimat pendek bahasa Indonesia, sudut pandang ketiga (contoh: "Pengguna membuat game Roblox dengan Lua"). Balas HANYA JSON array berisi string, maksimal 2 item, atau [] bila tidak ada.','Memori yang sudah ada:\n'+known+'\n\nPercakapan terbaru:\n'+ms,0,'mem');
   const m=txt.match(/\[[\s\S]*\]/);if(!m)return;
   let arr;try{arr=JSON.parse(m[0])}catch{return}
   D.mems=D.mems||[];const added=[];
@@ -1980,12 +2005,12 @@ let GENV={enabled:false,image:false,video:false,limits:{}};
 const GAPI=window.AURALIS_GEN||'/api/gen',GBLOB=new Map();
 const GCLS='Kamu pengarah media. Tentukan apakah pesan terakhir pengguna meminta MEMBUATKAN gambar atau video baru, lalu pilih jenisnya. Jawab HANYA JSON satu baris: {"intent":"image"|"video"|"vector"|"chat","style":"photo"|"3d"|"art"|"vector","ratio":"1:1"|"16:9"|"9:16","prompt":"..."}. Arti intent: "image" = pengguna ingin sebuah gambar jadi (foto, realistis, render 3D, lukisan, ilustrasi, karakter, maskot, poster, wallpaper, avatar, pemandangan, atau karya visual apa pun); "video" = klip video atau animasi bergerak; "vector" = diagram, flowchart, denah, infografis, grafik, ikon atau logo datar, atau pengguna secara eksplisit meminta SVG, kode, atau vektor; "chat" = bukan permintaan membuat media, misalnya bertanya tentang gambar atau video, meminta kode, penjelasan, tulisan, tips, atau menganalisis gambar yang sudah ada. Bila ragu antara chat dan media, pilih chat. Bila pesan merujuk hasil sebelumnya (mis. "buat lagi tapi malam hari", "ubah jadi merah"), gabungkan dengan prompt sebelumnya. style: "photo" untuk foto atau realistis, "3d" untuk render 3D, "art" untuk ilustrasi, lukisan, atau kartun, "vector" untuk vektor. "prompt" (hanya bila bukan chat) = prompt bahasa Inggris yang detail dan visual (subjek, gaya, pencahayaan, komposisi, suasana; untuk video tambahkan gerakan kamera atau subjek), maksimal 70 kata, tanpa menambah orang atau merek yang tidak disebut. ratio: 16:9 untuk pemandangan, banner, youtube, film; 9:16 untuk wallpaper HP, story, reels, tiktok; selain itu 1:1. Bila pengguna meminta gaya 3D, wajib tulis di prompt: 3D render, soft studio lighting, volumetric light, depth of field, highly detailed, octane render; bila realistis atau foto tulis: photorealistic, natural lighting, 85mm lens, sharp focus.';
 const GMEDIA=/gambar|render|maskot|foto|ilustrasi|lukis|poster|logo|wallpaper|image|picture|photo|draw|video|animasi|klip|reel|film|desain|design|banner|sketsa|sampul|cover|thumbnail|ikon|icon|avatar|karakter|potret|lukisan|pemandangan|stiker|sticker|mockup|visual|artwork|3d/i,GFOLLOW=/\b(lagi|ubah|ganti|versi|jadi|tambah|tambahkan|lebih|coba|variasi|serupa)\b/i;
-async function loadGen(){try{GENV=await(await fetch(GAPI)).json()}catch{GENV={enabled:false}}genUI()}
+async function loadGen(){try{GENV=await(await fetch(GAPI)).json();if(GENV.costs)Object.assign(GCOST,GENV.costs)}catch{GENV={enabled:false}}genUI()}
 function genUI(){const i=$('#in');if(i&&GENV.enabled&&D)i.placeholder='Tulis pesan... (coba: "buatkan gambar kucing di atap" atau "buatkan video ombak")'}
 const genPrev=()=>{const m=cur&&cur.msgs[cur.msgs.length-2];return m&&m.gen?m:null};
 async function genDecide(t){
  const ctx=cur.msgs.slice(-5,-1).map(m=>(m.r=='user'?'Pengguna: ':'Asisten: ')+(m.gen?'[membuat '+(m.gen.k=='video'?'video':'gambar')+' dengan prompt: '+(m.gen.ep||m.gen.p)+']':m.c.replace(/```[\s\S]*?```/g,'[kode]').slice(0,300))).join('\n');
- let raw;try{raw=await quickAsk(GCLS,(ctx?'Percakapan sebelumnya:\n'+ctx+'\n\n':'')+'Pesan terakhir pengguna: '+t,12000)}catch{return null}
+ let raw;try{raw=await quickAsk(GCLS,(ctx?'Percakapan sebelumnya:\n'+ctx+'\n\n':'')+'Pesan terakhir pengguna: '+t,12000,'cls')}catch{return null}
  const m=raw.match(/\{[\s\S]*\}/);if(!m)return null;let j;try{j=JSON.parse(m[0])}catch{return null}
  if(!['image','video','vector'].includes(j.intent))return{kind:'chat'};
  const ep=typeof j.prompt=='string'&&j.prompt.trim().length>5?j.prompt.trim().slice(0,900):t;
@@ -2005,7 +2030,34 @@ async function genFlow(t){
  if(d.kind=='vector'||d.style=='vector'||(d.kind=='video'&&!GENV.video)){if(el)el.remove();busyUI(false);return reply({vis:d.kind=='video'?'video':'image'})}
  return genRun({prompt:t,kind:d.kind,ratio:d.ratio,ep:d.ep,b})}
 
-const GCOST={image:1500,video:6000}; // perkiraan biaya token per hasil, dipotong dari kuota
+
+/* ===== Video hasil AI disimpan di perangkat (IndexedDB), karena berkas di server kedaluwarsa sekitar 1 jam ===== */
+let GDBP=null;
+const gdb=()=>GDBP||(GDBP=new Promise((ok,no)=>{try{const q=indexedDB.open('auralis-media',1);q.onupgradeneeded=()=>q.result.createObjectStore('v',{keyPath:'t'});q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)}catch(e){no(e)}}));
+const gtx=async(mode,fn)=>{const db=await gdb();return new Promise((ok,no)=>{const tx=db.transaction('v',mode);let rq;try{rq=fn(tx.objectStore('v'))}catch(e){return no(e)}tx.oncomplete=()=>ok(rq&&rq.result!==undefined?rq.result:undefined);tx.onerror=()=>no(tx.error);tx.onabort=()=>no(tx.error)})};
+async function gdbPut(t,blob){try{await gtx('readwrite',s=>s.put({t,blob,n:blob.size}));gdbPrune()}catch{}}
+async function gdbGet(t){try{const r=await gtx('readonly',s=>s.get(t));return r&&r.blob||null}catch{return null}}
+async function gdbPrune(){try{const all=await gtx('readonly',s=>s.getAll());all.sort((a,b)=>b.t-a.t);let sum=0;const del=[];all.forEach((x,i)=>{sum+=x.n||0;if(i>=20||sum>200*1048576)del.push(x.t)});if(del.length)await gtx('readwrite',s=>{del.forEach(k=>s.delete(k))})}catch{}}
+
+/* ===== Edit gambar: lampirkan foto atau tekan Edit di gambar hasil AI, lalu tulis perubahannya ===== */
+const ECLS='Pengguna melampirkan sebuah gambar. Tentukan apakah pesannya meminta MENGEDIT atau MENGUBAH gambar itu menjadi gambar baru (ganti latar, ubah warna atau gaya, tambah atau hapus objek, percantik, jadikan kartun atau lukisan), ataukah hanya bertanya, meminta deskripsi, analisis, atau penjelasan tentang gambar itu. Jawab HANYA JSON satu baris: {"edit":true|false,"prompt":"instruksi edit dalam bahasa Inggris, singkat dan spesifik, hanya perubahan yang diminta"}. Bila ragu, edit=false.';
+const EDITRX=/\b(ubah|ganti|edit|jadikan|jadi|tambah|tambahkan|hapus|hilangkan|buang|perbaiki|percantik|warnai|warna|latar|background|gaya|style|filter|anime|kartun|cartoon|lukisan|ghibli|pixar|remove|change|make|turn|add|replace|restyle|enhance)\b/i;
+let editForce=0;
+function genEditMaybe(t,img){
+ if(!GENV.enabled||!GENV.edit||!img||t.length>400||t.includes('```'))return false;
+ const forced=!!editForce;if(!forced&&!EDITRX.test(t))return false;
+ editForce=0;genEditFlow(t,img,forced);return true}
+async function genEditFlow(t,img,forced){
+ busyUI(true);ctl=new AbortController();
+ const b=bub('assistant','',1),bc=b.querySelector('.bc');bc.innerHTML='<div class="dots"><i></i><i></i><i></i></div>';stick(1);
+ let d=null;try{const raw=await quickAsk(ECLS,'Pesan pengguna: '+t,12000,'cls'),m=raw.match(/\{[\s\S]*\}/);if(m)d=JSON.parse(m[0])}catch{}
+ const el=b.closest('.m');
+ if(ctl.signal.aborted){if(el)el.remove();busyUI(false);return}
+ if(!forced&&!(d&&d.edit===true)){if(el)el.remove();busyUI(false);return reply()}
+ const ep=d&&typeof d.prompt=='string'&&d.prompt.trim().length>3?d.prompt.trim().slice(0,600):t;
+ return genRun({prompt:t,kind:'edit',ratio:'1:1',ep,image:img,b})}
+
+const GCOST={image:1500,video:6000,edit:3000}; // perkiraan biaya token per hasil, dipotong dari kuota
 const gSleep=(ms,sig)=>new Promise((ok,no)=>{const t=setTimeout(ok,ms);if(sig)sig.addEventListener('abort',()=>{clearTimeout(t);no(Object.assign(Error('Dibatalkan'),{name:'AbortError'}))},{once:true})});
 async function gPost(b){
  const r=await fetch(GAPI,{method:'POST',signal:ctl&&ctl.signal,headers:{'content-type':'application/json',...LH()},body:JSON.stringify(b)});
@@ -2024,11 +2076,11 @@ async function genRun(o){
  const b=o.b||bub('assistant','',1),bc=b.querySelector('.bc'),t0=Date.now();
  bc.innerHTML=`<div class="gprog r${ratio.replace(':','x')}"><div class="gsh"></div><div class="gl">Menyiapkan…</div></div>`;stick(1);
  const lbl=t=>{const e=bc.querySelector('.gl');if(e)e.textContent=t};
- const tk=setInterval(()=>lbl((kind=='video'?'Membuat video':'Membuat gambar')+'… '+Math.round((Date.now()-t0)/1000)+' dtk'),1000);
+ const tk=setInterval(()=>lbl((kind=='video'?'Membuat video':kind=='edit'?'Mengedit gambar':'Membuat gambar')+'… '+Math.round((Date.now()-t0)/1000)+' dtk'),1000);
  let fail='',status=0;
  try{
   lbl('Mengirim…');
-  const c=await gPost({action:'create',kind,prompt:ep,ratio});
+  const c=await gPost({action:'create',kind,prompt:ep,ratio,image:o.image});
   const poll=kind=='video'?5000:2200,max=kind=='video'?10*60e3:150e3;let file=null;
   while(Date.now()-t0<max){
    await gSleep(poll,ctl.signal);
@@ -2038,9 +2090,9 @@ async function genRun(o){
   if(!file)throw Error('Waktu habis. Coba lagi sebentar lagi.');
   lbl('Mengambil hasil…');
   const r=await fetch(GAPI+'?f='+encodeURIComponent(file),{signal:ctl.signal});if(!r.ok)throw Error('Hasil tidak bisa diambil (mungkin sudah kedaluwarsa)');
-  const blob=await r.blob(),ts=Date.now(),g={k:kind,p:prompt,r:ratio};if(ep!==prompt)g.ep=ep;
-  if(kind=='image')g.u=await gShrink(blob);else{g.u=file;g.x=ts+55*60e3;GBLOB.set(ts,URL.createObjectURL(blob))}
-  const m={r:'assistant',c:(kind=='video'?'🎬 Video dibuat: ':'🖼️ Gambar dibuat: ')+prompt,t:ts,gen:g};
+  const blob=await r.blob(),ts=Date.now(),g={k:kind=='edit'?'image':kind,p:prompt,r:ratio};if(ep!==prompt)g.ep=ep;if(kind=='edit')g.e=1;
+  if(kind!='video')g.u=await gShrink(blob);else{g.u=file;g.x=ts+55*60e3;g.l=1;GBLOB.set(ts,URL.createObjectURL(blob));gdbPut(ts,blob)}
+  const m={r:'assistant',c:(kind=='video'?'🎬 Video dibuat: ':kind=='edit'?'✏️ Gambar diedit: ':'🖼️ Gambar dibuat: ')+prompt,t:ts,gen:g};
   cur.msgs.push(m);cur.t=ts;
   bc.innerHTML=md(m.c,1);
   b.insertAdjacentHTML('beforeend',`<div class="ts" title="${esc(fullT(ts))}">${fmtT(ts)} · ${kind=='video'?'Video':'Gambar'}</div>`);
@@ -2054,22 +2106,26 @@ function genMedia(b,m){
  const g=m.gen,bc=b.querySelector('.bc');if(!g||!bc||bc.querySelector('.gm'))return;
  const d=document.createElement('div');d.className='gm r'+String(g.r||'1:1').replace(/[^0-9:]/g,'').replace(':','x');
  if(g.k=='image')d.innerHTML=gSafeImg(g.u)?`<img src="${g.u}" alt="${esc(g.p)}">`:'<div class="gx">Gambar tidak tersimpan di perangkat ini (tidak ikut sinkron).</div>';
- else{const src=GBLOB.get(m.t)||(g.x&&Date.now()<g.x&&typeof g.u=='string'?GAPI+'?f='+encodeURIComponent(g.u):null);
-  d.innerHTML=src?`<video src="${esc(src)}" controls playsinline preload="metadata"></video>`:'<div class="gx">Video sudah kedaluwarsa. Hasil video hanya tersedia sekitar 1 jam, jadi unduh segera setelah jadi.</div>'}
+ else{const vid=s=>`<video src="${esc(s)}" controls playsinline preload="metadata"></video>`,gone=g.l?'<div class="gx">Video tidak ditemukan di perangkat ini. Video disimpan di perangkat tempat video dibuat dan tidak ikut sinkron.</div>':'<div class="gx">Video sudah kedaluwarsa. Hasil video hanya tersedia sekitar 1 jam, jadi unduh segera setelah jadi.</div>';
+  let src=GBLOB.get(m.t);
+  if(!src&&g.l){d.innerHTML='<div class="gx">Memuat video…</div>';gdbGet(m.t).then(bl=>{if(bl){const u=URL.createObjectURL(bl);GBLOB.set(m.t,u);d.innerHTML=vid(u)}else d.innerHTML=gone})}
+  else{if(!src&&g.x&&Date.now()<g.x&&typeof g.u=='string')src=GAPI+'?f='+encodeURIComponent(g.u);d.innerHTML=src?vid(src):gone}}
  bc.insertAdjacentElement('afterbegin',d)}
-function genActs(a,last){a.innerHTML='<button data-a="gdl">Unduh</button><button data-a="gcp">Salin prompt</button>'+(last?'<button data-a="grg">Buat lagi</button>':'')}
+function genActs(a,last,m){a.innerHTML='<button data-a="gdl">Unduh</button><button data-a="gcp">Salin prompt</button>'+(m&&m.gen&&m.gen.k=='image'&&GENV.edit?'<button data-a="ged">Edit</button>':'')+(last&&!(m&&m.gen&&m.gen.e)?'<button data-a="grg">Buat lagi</button>':'')}
 async function genDl(m){
  const g=m.gen;if(!g)return;
  if(g.k=='image'){if(!gSafeImg(g.u))return toast('Gambar tidak tersedia');const a=document.createElement('a');a.href=g.u;a.download='auralis-gambar-'+m.t+'.'+(g.u.startsWith('data:image/webp')?'webp':'jpg');a.click();return}
  let u=GBLOB.get(m.t),tmp=false;
+ if(!u&&g.l){const bl=await gdbGet(m.t);if(bl){u=URL.createObjectURL(bl);tmp=true}}
  if(!u){if(!(g.x&&Date.now()<g.x))return toast('Video sudah kedaluwarsa');try{const r=await fetch(GAPI+'?f='+encodeURIComponent(g.u));if(!r.ok)throw 0;u=URL.createObjectURL(await r.blob());tmp=true}catch{return toast('Video tidak bisa diambil')}}
  const a=document.createElement('a');a.href=u;a.download='auralis-video-'+m.t+'.mp4';a.click();if(tmp)setTimeout(()=>URL.revokeObjectURL(u),5000)}
 $('#w').addEventListener('click',e=>{
- const bt=e.target.closest&&e.target.closest('[data-a]');if(!bt||!['gdl','gcp','grg'].includes(bt.dataset.a))return;
+ const bt=e.target.closest&&e.target.closest('[data-a]');if(!bt||!['gdl','gcp','grg','ged'].includes(bt.dataset.a))return;
  const el=bt.closest('.m');if(!el)return;const ix=+el.dataset.i,m=cur&&cur.msgs[ix];if(!m||!m.gen)return;
  const a=bt.dataset.a;
  if(a=='gdl')genDl(m);
  else if(a=='gcp'){try{navigator.clipboard.writeText(m.gen.p);flash(bt,'✓ Tersalin')}catch{}}
+ else if(a=='ged'){if(busy)return;if(!gSafeImg(m.gen.u))return toast('Gambar tidak tersedia untuk diedit');atts=atts.filter(x=>!x.edit);atts.push({name:'Gambar yang diedit',img:m.gen.u,edit:1});editForce=1;renderAtt();$('#in').focus();toast('Tulis perubahannya, mis. "ganti latar jadi malam hari".')}
  else if(a=='grg'&&!busy){cur.msgs.pop();save();drawMsgs();genRun({prompt:m.gen.p,ep:m.gen.ep,kind:m.gen.k,ratio:m.gen.r||'1:1'})}});
 setTimeout(loadGen,0);setTimeout(genUI,1500);
 
@@ -2230,7 +2286,7 @@ async function sugGo(b,out){
  const n=++sugN,q=lastUserText();if(!q)return;
  let arr;
  try{
-  const t=await quickAsk('Kamu membuat saran pertanyaan lanjutan. Beri tepat 3 pertanyaan atau perintah singkat (maksimal 8 kata, dari sudut pandang pengguna) yang paling mungkin ingin dikirim pengguna setelah jawaban ini. Pakai bahasa yang sama dengan pengguna dan jangan mengulang yang sudah dibahas. Balas HANYA array JSON berisi 3 string.','Pengguna: '+q.slice(0,500)+'\n\nJawaban: '+out.replace(/```[\s\S]*?```/g,'[kode]').slice(0,900),12000);
+  const t=await quickAsk('Kamu membuat saran pertanyaan lanjutan. Beri tepat 3 pertanyaan atau perintah singkat (maksimal 8 kata, dari sudut pandang pengguna) yang paling mungkin ingin dikirim pengguna setelah jawaban ini. Pakai bahasa yang sama dengan pengguna dan jangan mengulang yang sudah dibahas. Balas HANYA array JSON berisi 3 string.','Pengguna: '+q.slice(0,500)+'\n\nJawaban: '+out.replace(/```[\s\S]*?```/g,'[kode]').slice(0,900),12000,'sug');
   const m=t.match(/\[[\s\S]*\]/);arr=JSON.parse(m[0])}
  catch(e){return}
  if(n!=sugN||!b.isConnected||busy||!Array.isArray(arr))return;
@@ -2452,13 +2508,16 @@ async function admStats(o){
  try{
   const r=await fetch(LOGAPI+'?stats=1',{headers:{'x-admin-session':ADM}});const j=await r.json();
   if(!r.ok)throw Error((j.error&&j.error.message)||'Server '+r.status);
-  const t=j.rows[0],y=j.rows[1]||{},rows=j.rows.slice().reverse(),mx=Math.max(1,...rows.map(x=>x.chat)),mxt=Math.max(1,...rows.map(x=>x.tok||0)),tmod=Object.entries(j.tmodels||{}).sort((a,b)=>b[1]-a[1]).slice(0,6),ttot=tmod.reduce((a,x)=>a+x[1],0)||1;
+  const t=j.rows[0],y=j.rows[1]||{},rows=j.rows.slice().reverse(),mx=Math.max(1,...rows.map(x=>x.chat)),mxt=Math.max(1,...rows.map(x=>x.tok||0)),tmod=Object.entries(j.tmodels||{}).sort((a,b)=>b[1]-a[1]).slice(0,6),ttot=tmod.reduce((a,x)=>a+x[1],0)||1,mxc=Math.max(1,...rows.map(x=>x.cost||0)),FE={chat:'Chat',sug:'Saran lanjutan',mem:'Memori otomatis',cls:'Pendeteksi media',sum:'Ringkasan',gen:'Gambar dan video'},fe=Object.entries(FE).map(([k,n])=>[n,j.rows.slice(0,7).reduce((a,x)=>a+(x['tf:'+k]||0),0)]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]),ftot=fe.reduce((a,x)=>a+x[1],0)||1,un=(t.uok||0)+(t.umiss||0);
   const tile=(n,l)=>`<div class="stc"><b>${n}</b><span class="hint">${l}</span></div>`;
   const mod=Object.entries(j.models).sort((a,b)=>b[1]-a[1]).slice(0,6),tot=mod.reduce((a,x)=>a+x[1],0)||1;
   const fb=Object.entries(j.fb);
-  box.innerHTML=`<div class="stg">${tile(t.chat,'pesan hari ini')}${tile(fK(t.tok||0),'token hari ini')}${tile(t.chat?fK(Math.round((t.tok||0)/t.chat)):'0','token rata-rata/pesan')}${tile(t.signup,'akun baru')}${tile(t.trial,'trial')}${tile(t.err,'error')}${tile(t.up+' / '+t.dn,'👍 / 👎')}${tile(j.lic,'kode Pro')}</div>
+  box.innerHTML=`${(j.alerts||[]).map(a=>`<div class="hint" style="padding:8px 10px;margin-bottom:6px;border-radius:10px;border:1px solid var(--bd);background:var(--s2)">${a.lv=='warn'?'⚠️':'ℹ️'} ${esc(a.m)}</div>`).join('')}<div class="stg">${tile(t.chat,'pesan hari ini')}${tile(fK(t.tok||0),'token hari ini')}${tile(t.chat?fK(Math.round((t.tok||0)/t.chat)):'0','token rata-rata/pesan')}${tile('Rp '+fN(t.cost||0),'estimasi biaya hari ini')}${tile(un?Math.round((t.uok||0)/un*100)+'%':'-','token dari usage asli')}${tile((t.gen_image||0)+' / '+(t.gen_video||0)+' / '+(t.gen_edit||0),'gambar / video / edit')}${tile(t.web||0,'pencarian web')}${tile(t.signup,'akun baru')}${tile(t.trial,'trial')}${tile(t.err,'error')}${tile(t.up+' / '+t.dn,'👍 / 👎')}${tile(j.lic,'kode Pro')}</div>
   <div class="pvw"><div class="bars">${rows.map((d,i)=>`<div title="${esc(d.d)}: ${d.chat} pesan"><span>${d.chat}</span><i style="--h:${Math.round(d.chat/mx*100)}%;--i:${i}"></i><span>${esc(d.d.slice(8))}</span></div>`).join('')}</div></div>
   <div class="hint" style="margin-top:8px">Token per hari (14 hari)</div><div class="pvw"><div class="bars">${rows.map((d,i)=>`<div title="${esc(d.d)}: ${fN(d.tok||0)} token"><span>${fK(d.tok||0)}</span><i style="--h:${Math.round((d.tok||0)/mxt*100)}%;--i:${i}"></i><span>${esc(d.d.slice(8))}</span></div>`).join('')}</div></div>
+  <div class="hint" style="margin-top:8px">Estimasi biaya per hari (Rp, 14 hari)</div><div class="pvw"><div class="bars">${rows.map((d,i)=>`<div title="${esc(d.d)}: Rp ${fN(d.cost||0)}"><span>${fK(d.cost||0)}</span><i style="--h:${Math.round((d.cost||0)/mxc*100)}%;--i:${i}"></i><span>${esc(d.d.slice(8))}</span></div>`).join('')}</div></div>
+  ${j.rates&&j.rates.est?'<p class="hint">Tarif bawaan masih perkiraan. Isi env COST_TOK_PER_M_USD, COST_VID_USD, dan USD_IDR di Vercel agar angka rupiah akurat.</p>':''}
+  ${fe.length?'<div class="hint" style="margin-top:8px">Token per fitur (7 hari)</div>'+fe.map(x=>`<div class="kn"><span>${esc(x[0])}</span><b>${Math.round(x[1]/ftot*100)}% · ${fK(x[1])}</b></div>`).join(''):''}
   <p class="hint">Kemarin: ${y.chat||0} pesan, ${fK(y.tok||0)} token, ${y.signup||0} akun baru. Diblokir (anti-abuse): ${t.blocked} hari ini. Referral: ${t.ref} undangan, ${t.ref_claim} klaim.</p>
   ${mod.length?'<div class="hint">Model terpakai (7 hari)</div>'+mod.map(x=>`<div class="kn"><span>${esc(x[0])}</span><b>${Math.round(x[1]/tot*100)}% · ${x[1]}</b></div>`).join(''):''}
   ${tmod.length?'<div class="hint" style="margin-top:8px">Token per model (7 hari)</div>'+tmod.map(x=>`<div class="kn"><span>${esc(x[0])}</span><b>${Math.round(x[1]/ttot*100)}% · ${fK(x[1])}</b></div>`).join(''):''}
@@ -2466,5 +2525,8 @@ async function admStats(o){
   <details style="margin-top:8px"><summary class="hint">Error terbaru (${j.errs.length})</summary>${j.errs.length?j.errs.map(e=>`<div class="kn"><span><code>${esc(e.m)}</code><br><span class="hint">${esc(new Date(e.t).toLocaleString('id-ID',{timeZone:TZ()}))} · ${esc(e.w||'')} · ${esc(e.ua||'')}</span></span></div>`).join(''):'<p class="hint">Belum ada.</p>'}</details>`;
  }catch(e){box.innerHTML='<p class="hint">Statistik belum tersedia: '+esc(e.message)+'. Pastikan api/log.js sudah di-deploy.</p>'}}
 
+/* pengingat cadangan: obrolan hanya ada di perangkat ini kecuali sinkron Pro aktif */
+function bkNudge(){try{if(!D||!D.chats||D.chats.length<8||(typeof SY!='undefined'&&SY.on))return;const n=Date.now();if(!D.bk0){D.bk0=n;save()}const last=D.bk||D.bk0;if(n-last<14*864e5||n-(D.bkn||0)<7*864e5)return;D.bkn=n;save();toast('Sudah 2 minggu belum ada cadangan. Buka Atur > Data > Ekspor semua data.')}catch(e){}}
+setTimeout(bkNudge,12000);
 boot();
 </script></body></html>
