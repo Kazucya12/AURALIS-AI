@@ -60,7 +60,7 @@ export default async function handler(req) {
     if (url.searchParams.get('stats')) {
       if (limited('s' + ip, 60)) return J({ error: { message: 'Terlalu banyak permintaan' } }, 429);
       if (!have || !(await adminOk(req))) return J({ error: { message: 'Akses admin ditolak' } }, 403);
-      const names = ['chat', 'err', 'up', 'dn', 'signup', 'trial', 'ref', 'ref_claim', 'blocked', 'trial_denied'], days = [];
+      const names = ['chat', 'tok', 'err', 'up', 'dn', 'signup', 'trial', 'ref', 'ref_claim', 'blocked', 'trial_denied'], days = [];
       for (let i = 0; i < 14; i++) days.push(dayOf(i));
       const keys = []; days.forEach(d => names.forEach(n => keys.push('auralis:st:' + d + ':' + n)));
       const vals = await kv(['MGET', ...keys]);
@@ -69,10 +69,14 @@ export default async function handler(req) {
       const mk = []; for (const d of days.slice(0, 7)) { let cur = 0, ks = []; do { const r = await kv(['SCAN', cur, 'MATCH', 'auralis:st:' + d + ':m:*', 'COUNT', 200]); cur = +r[0]; ks = ks.concat(r[1]); } while (cur && ks.length < 60); mk.push(...ks.slice(0, 60)); }
       const mv = mk.length ? await kv(['MGET', ...mk]) : [], models = {};
       mk.forEach((k, i) => { const m = k.split(':m:')[1]; models[m] = (models[m] || 0) + (+mv[i] || 0); });
+      // token per model (7 hari)
+      const tkk = []; for (const d of days.slice(0, 7)) { let cur = 0, ks = []; do { const r = await kv(['SCAN', cur, 'MATCH', 'auralis:st:' + d + ':tm:*', 'COUNT', 200]); cur = +r[0]; ks = ks.concat(r[1]); } while (cur && ks.length < 60); tkk.push(...ks.slice(0, 60)); }
+      const tkv = tkk.length ? await kv(['MGET', ...tkk]) : [], tmodels = {};
+      tkk.forEach((k, i) => { const m = k.split(':tm:')[1]; tmodels[m] = (tmodels[m] || 0) + (+tkv[i] || 0); });
       const errs = ((await kv(['LRANGE', 'auralis:log:err', 0, 49])) || []).map(x => { try { return JSON.parse(x); } catch { return null; } }).filter(Boolean);
       const fb = ((await kv(['HGETALL', 'auralis:fb:model'])) || []), fbm = {};
       for (let i = 0; i < fb.length; i += 2) { const [m, v] = String(fb[i]).split('|'); (fbm[m] = fbm[m] || { up: 0, dn: 0 })[v] = +fb[i + 1] || 0; }
-      return J({ ok: true, rows, models, errs, fb: fbm, lic: +(await kv(['SCARD', 'auralis:lic:index'])) || 0 });
+      return J({ ok: true, rows, models, tmodels, errs, fb: fbm, lic: +(await kv(['SCARD', 'auralis:lic:index'])) || 0 });
     }
     const t0 = Date.now();
     let kvOk = null;
