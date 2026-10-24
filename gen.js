@@ -3,7 +3,8 @@
 // Env opsional: IMAGE_MODEL (bawaan black-forest-labs/flux-schnell), VIDEO_MODEL (kosong = fitur video mati; isi mis. "owner/nama-model"),
 //   IMAGE_INPUT / VIDEO_INPUT (JSON tambahan untuk input model), GEN_IMG_DAILY (bawaan 30), GEN_VID_DAILY (bawaan 5),
 //   REPLICATE_URL (bawaan https://api.replicate.com/v1), PRO_SECRET + KV_REST_API_URL/TOKEN (batas harian per lisensi).
-// Khusus Pro. Bila PRO_SECRET kosong (sistem Pro mati), semua pengguna boleh tetapi tetap dibatasi per IP.
+// Terbuka untuk semua akun (gratis dan Pro). Dibatasi kuota token per 6 jam (sama dengan chat: gratis per IP, Pro per lisensi)
+// dan batas harian. Biaya token: GEN_IMG_TOKENS (bawaan 1500) dan GEN_VID_TOKENS (bawaan 6000), harus sama dengan GCOST di index.html.
 export const config = { runtime: 'edge' };
 
 const TOKEN = (process.env.REPLICATE_API_TOKEN || '').trim();
@@ -34,9 +35,14 @@ async function lic(req) {
     const k = await crypto.subtle.importKey('raw', enc.encode(PRO_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
     if (!(await crypto.subtle.verify('HMAC', k, unb64u(sig), enc.encode(body)))) return { pro: false };
     const p = JSON.parse(new TextDecoder().decode(unb64u(body)));
-    return p.p === 'pro' && p.e > Date.now() ? { pro: true, id: String(p.c || '') || null } : { pro: false };
+    return p.p === 'pro' && p.e > Date.now() ? { pro: true, id: String(p.c || '') || null, who: 'L' + String(p.c || p.e) } : { pro: false };
   } catch { return { pro: false }; }
 }
+const TOK_FREE = +process.env.TOKEN_LIMIT_FREE || 15000, TOK_PRO = +process.env.TOKEN_LIMIT_PRO || 50000, TOK_WIN = 6 * 3600;
+const COST = { image: +process.env.GEN_IMG_TOKENS || 1500, video: +process.env.GEN_VID_TOKENS || 6000 };
+const dayKey = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+async function tokKey(who) { const h = new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(who))); return 'auralis:tk:' + [...h.slice(0, 12)].map(x => x.toString(16).padStart(2, '0')).join(''); }
+async function stat(name, by) { try { const k = 'auralis:st:' + dayKey() + ':' + name, n = await kv(['INCRBY', k, by || 1]); if (n === (by || 1)) await kv(['EXPIRE', k, 40 * 86400]); } catch {} }
 const hits = new Map();
 function limited(key, n, win) {
   const now = Date.now(), a = (hits.get(key) || []).filter(t => now - t < win);
@@ -74,12 +80,11 @@ export default async function handler(req) {
   if (req.method !== 'POST') return E('Metode tidak didukung', 405);
   if (!TOKEN) return E('Generator belum diatur di server (REPLICATE_API_TOKEN)', 503);
   if (+req.headers.get('content-length') > 20000) return E('Permintaan terlalu besar', 413);
-  const L = await lic(req);
-  if (!L.pro) return E('Pembuat gambar dan video khusus Pro.', 402, 'pro_required');
-  if (limited('p:' + ip, 40, 10 * 60e3)) return E('Terlalu banyak permintaan. Coba lagi sebentar.', 429);
-
+  const L = await lic(req); // akun gratis juga boleh; dibatasi kuota token dan batas harian
   const d = await req.json().catch(() => null);
   if (!d) return E('Body tidak valid', 400);
+  // polling status sering (video bisa ratusan kali), jadi batasnya dipisah dari batas membuat
+  if (d.action === 'status' ? limited('s:' + ip, 400, 10 * 60e3) : limited('p:' + ip, 40, 10 * 60e3)) return E('Terlalu banyak permintaan. Coba lagi sebentar.', 429);
   const hdr = { authorization: 'Bearer ' + TOKEN, 'content-type': 'application/json' };
 
   if (d.action === 'create') {
@@ -89,6 +94,18 @@ export default async function handler(req) {
     const prompt = String(d.prompt || '').trim().slice(0, 1500);
     if (prompt.length < 3) return E('Tulis deskripsi dulu', 400);
     const ratio = ['1:1', '16:9', '9:16', '4:3', '3:4'].includes(d.ratio) ? d.ratio : '1:1';
+    // kuota token (dipotong setelah penyedia menerima permintaan)
+    let tk = null;
+    if (PRO_SECRET && KV_URL && KV_TOKEN) {
+      try {
+        const key = await tokKey(L.who || 'I' + ip), limit = L.pro ? TOK_PRO : TOK_FREE, used = +(await kv(['GET', key])) || 0;
+        if (used + COST[kind] > limit) {
+          const ttl = used ? await kv(['PTTL', key]) : -2, mnt = Math.ceil((ttl > 0 ? ttl : TOK_WIN * 1000) / 60000);
+          return E(`Kuota token tidak cukup untuk ${kind === 'video' ? 'video' : 'gambar'} (butuh sekitar ${COST[kind]}). Reset dalam ${Math.floor(mnt / 60)} jam ${mnt % 60} menit.`, 429, 'quota');
+        }
+        tk = { key };
+      } catch {}
+    }
     // kuota harian
     if (KV_URL && KV_TOKEN) {
       try {
@@ -111,6 +128,8 @@ export default async function handler(req) {
     } catch { return E('Penyedia tidak bisa dihubungi', 502); }
     const p = await r.json().catch(() => ({}));
     if (!r.ok || !p.id) return E(String(p.detail || p.title || 'Penyedia menolak permintaan').slice(0, 200), r.status === 402 ? 502 : (r.status >= 500 ? 502 : 400));
+    if (tk) { try { const r2 = await kv(['INCRBY', tk.key, COST[kind]]); if (r2 === COST[kind]) await kv(['EXPIRE', tk.key, TOK_WIN]); } catch {} }
+    await Promise.all([stat('tok', COST[kind]), stat('tm:gen-' + kind, COST[kind])]); // muncul di statistik token admin
     return J({ ok: true, id: p.id, kind });
   }
 
@@ -127,4 +146,3 @@ export default async function handler(req) {
   }
   return E('Aksi tidak dikenal', 400);
 }
-
