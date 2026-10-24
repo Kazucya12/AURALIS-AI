@@ -92,17 +92,23 @@ async function tokState(req, ip) {
 }
 async function tokAdd(st, n) {
   if (!st || !(n > 0)) return;
+  n = Math.round(n);
   try {
-    const r = await kvCmd(['INCRBY', st.key, Math.round(n)]);
-    if (r === Math.round(n)) await kvCmd(['EXPIRE', st.key, TOK_WIN]);
+    if (st.key) { // kuota pengguna (hanya bila sistem Pro aktif)
+      const r = await kvCmd(['INCRBY', st.key, n]);
+      if (r === n) await kvCmd(['EXPIRE', st.key, TOK_WIN]);
+    }
   } catch {}
+  // statistik admin: total token per hari dan per model (gagal diam-diam)
+  await Promise.all([stat('tok', n), stat('tm:' + (st.model || 'unknown'), n)]);
 }
-function countStream(src, st) {
-  const dec = new TextDecoder(); let carry = '', chars = 0, pend = 0;
+function countStream(src, st, inTok) {
+  const dec = new TextDecoder(); let carry = '', chars = 0, pend = 0, first = false;
   const re = /"(?:content|reasoning_content|reasoning)":"((?:[^"\\]|\\.)*)"/g;
   return src.pipeThrough(new TransformStream({
     async transform(chunk, ctl) {
       ctl.enqueue(chunk);
+      if (!first) { first = true; await tokAdd(st, inTok); } // token input baru dihitung setelah model benar-benar menjawab
       const t = carry + dec.decode(chunk, { stream: true }), cut = t.lastIndexOf('\n');
       const use = cut >= 0 ? t.slice(0, cut) : ''; carry = cut >= 0 ? t.slice(cut + 1) : t;
       let m; re.lastIndex = 0; while ((m = re.exec(use))) chars += m[1].length;
@@ -112,11 +118,12 @@ function countStream(src, st) {
   }));
 }
 const hits = new Map();
-function limited(ip) {
-  const now = Date.now(), LIM = +process.env.RATE_LIMIT || 30, WIN = 10 * 60e3;
-  const a = (hits.get(ip) || []).filter(t => now - t < WIN);
+function limited(ip, kind = 'c') {
+  // kind 'u' = cek pemakaian (ringan, batas 4x lebih longgar dan terpisah dari batas chat)
+  const now = Date.now(), LIM = (+process.env.RATE_LIMIT || 60) * (kind === 'u' ? 4 : 1), WIN = 10 * 60e3, k = kind + ip;
+  const a = (hits.get(k) || []).filter(t => now - t < WIN);
   if (a.length >= LIM) return true;
-  a.push(now); hits.set(ip, a);
+  a.push(now); hits.set(k, a);
   return false;
 }
 
@@ -208,7 +215,7 @@ export default async function handler(req) {
       return J(out);
     }
     if (u.searchParams.get('usage') === '1') {
-      if (limited(ip)) return J({ error: 'Terlalu banyak permintaan' }, 429);
+      if (limited(ip, 'u')) return J({ error: 'Terlalu banyak permintaan' }, 429);
       const st = await tokState(req, ip);
       return J(st ? { on: true, used: st.used, limit: st.limit, reset: st.reset } : { on: false });
     }
@@ -252,8 +259,10 @@ export default async function handler(req) {
   const inTok = estTok(JSON.stringify(b.messages).replace(/data:[^"]{200,}/g, 'x')) + (JSON.stringify(b.messages).includes('image_url') ? 800 : 0);
 
   let r;
+  // Vercel Edge memutus bila byte pertama belum datang sekitar 25 dtk. Putus lebih dulu agar pesan errornya jelas dan tidak dihitung.
+  const gc = new AbortController(), gt = setTimeout(() => gc.abort(), 23000);
   const callGw = () => fetch(GW_URL, {
-    method: 'POST',
+    method: 'POST', signal: gc.signal,
     headers: { 'content-type': 'application/json', authorization: 'Bearer ' + gwKey },
     body: JSON.stringify(body),
   });
@@ -262,14 +271,22 @@ export default async function handler(req) {
     // Beberapa model menolak parameter upaya: coba lagi tanpa reasoning_effort, lalu tanpa max_tokens
     if (r.status === 400 && body.reasoning_effort) { delete body.reasoning_effort; r = await callGw(); }
     if (r.status === 400 && b.max_tokens && body.max_tokens) { delete body.max_tokens; r = await callGw(); }
-  } catch { return J({ error: { message: 'Gateway tidak bisa dihubungi' } }, 502); }
+  } catch {
+    clearTimeout(gt);
+    return gc.signal.aborted
+      ? J({ error: { message: 'Model terlalu lama merespons (lebih dari 23 detik). Coba lagi, pilih model yang lebih cepat, atau turunkan Upaya.', code: 'slow' } }, 504)
+      : J({ error: { message: 'Gateway tidak bisa dihubungi' } }, 502);
+  }
+  clearTimeout(gt);
 
   let src = r.body;
   const extra = {};
-  if (tk && r.ok && src) { await tokAdd(tk, inTok); src = countStream(src, tk); extra['x-tok-used'] = String(tk.used + inTok); extra['x-tok-limit'] = String(tk.limit); extra['x-tok-reset'] = String(tk.reset); }
+  const tc = tk || (KV_URL && KV_TOKEN ? { key: null } : null);
+  if (tc) tc.model = String(body.model).slice(0, 40);
+  if (tc && r.ok && src) { src = countStream(src, tc, inTok); if (tk) { extra['x-tok-used'] = String(tk.used + inTok); extra['x-tok-limit'] = String(tk.limit); extra['x-tok-reset'] = String(tk.reset); } }
   const convert = an && r.ok && src;
   return new Response(convert ? toAnthropicStream(src) : src, {
     status: r.status,
     headers: { ...cors, ...extra, 'content-type': convert ? 'text/event-stream' : (r.headers.get('content-type') || 'text/event-stream'), 'cache-control': 'no-store' },
   });
-}
+    }
