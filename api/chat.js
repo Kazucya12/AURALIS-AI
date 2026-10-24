@@ -72,6 +72,18 @@ async function kvCmd(cmd) {
   return (await r.json()).result;
 }
 
+// Pipeline Upstash: satu permintaan HTTP untuk banyak perintah. incrMany memasang EXPIRE hanya untuk key yang baru dibuat.
+async function kvPipe(cmds) {
+  const r = await fetch(KV_URL + '/pipeline', { method: 'POST', headers: { authorization: 'Bearer ' + KV_TOKEN, 'content-type': 'application/json' }, body: JSON.stringify(cmds) });
+  if (!r.ok) throw new Error('kv');
+  return (await r.json()).map(x => x.result);
+}
+async function incrMany(items) { // items: [key, by, ttlDetik]
+  const res = await kvPipe(items.map(([k, by]) => ['INCRBY', k, by]));
+  const ex = []; items.forEach(([k, , ttl], i) => { if (res[i] === items[i][1] && items[i][1] > 0) ex.push(['EXPIRE', k, ttl]); });
+  if (ex.length) await kvPipe(ex);
+  return res;
+}
 // Statistik harian (Asia/Jakarta): penghitung ringan di Upstash, tersimpan 40 hari. Gagal diam-diam.
 const dayKey = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
 async function stat(name, by) { try { const k = 'auralis:st:' + dayKey() + ':' + name, n = await kvCmd(by ? ['INCRBY', k, by] : ['INCR', k]); if (n === (by || 1)) await kvCmd(['EXPIRE', k, 40 * 86400]); } catch {} }
@@ -90,37 +102,66 @@ async function tokState(req, ip) {
     return { key, limit, used, reset: ttl > 0 ? ttl : TOK_WIN * 1000 };
   } catch { return null; }
 }
+// n boleh negatif (koreksi setelah angka usage asli dari gateway diketahui)
 async function tokAdd(st, n) {
-  if (!st || !(n > 0)) return;
   n = Math.round(n);
+  if (!st || !n) return;
+  const d = dayKey(), it = [];
+  if (st.key) it.push([st.key, n, TOK_WIN]); // kuota pengguna (hanya bila sistem Pro aktif)
+  it.push(['auralis:st:' + d + ':tok', n, 40 * 86400], ['auralis:st:' + d + ':tm:' + (st.model || 'unknown'), n, 40 * 86400], ['auralis:st:' + d + ':tf:' + (st.feat || 'chat'), n, 40 * 86400]);
   try {
-    if (st.key) { // kuota pengguna (hanya bila sistem Pro aktif)
-      const r = await kvCmd(['INCRBY', st.key, n]);
-      if (r === n) await kvCmd(['EXPIRE', st.key, TOK_WIN]);
-    }
+    const res = await incrMany(it);
+    if (st.key && res[0] < 0) await kvCmd(['SET', st.key, 0, 'EX', TOK_WIN]);
   } catch {}
-  // statistik admin: total token per hari dan per model (gagal diam-diam)
-  await Promise.all([stat('tok', n), stat('tm:' + (st.model || 'unknown'), n)]);
 }
+// Hitung token: perkiraan (karakter/4) selama streaming, lalu dikoreksi dengan angka `usage` asli dari gateway di akhir stream bila ada.
 function countStream(src, st, inTok) {
-  const dec = new TextDecoder(); let carry = '', chars = 0, pend = 0, first = false;
+  const dec = new TextDecoder(); let carry = '', chars = 0, pend = 0, first = false, charged = 0, usage = 0;
   const re = /"(?:content|reasoning_content|reasoning)":"((?:[^"\\]|\\.)*)"/g;
+  const num = (s, k) => { const r = new RegExp('"' + k + '":\\s*(\\d+)', 'g'); let m, v = 0; while ((m = r.exec(s))) v = +m[1]; return v; };
+  const scan = s => {
+    let m; re.lastIndex = 0; while ((m = re.exec(s))) chars += m[1].length;
+    if (s.includes('"usage"')) { const t = num(s, 'total_tokens'), p = num(s, 'prompt_tokens'), c = num(s, 'completion_tokens'); const u = t > 0 ? t : p + c; if (u > 0) usage = u; }
+  };
+  const add = async n => { n = Math.round(n); if (n > 0) { charged += n; await tokAdd(st, n); } };
   return src.pipeThrough(new TransformStream({
     async transform(chunk, ctl) {
       ctl.enqueue(chunk);
-      if (!first) { first = true; await tokAdd(st, inTok); } // token input baru dihitung setelah model benar-benar menjawab
+      if (!first) { first = true; await add(inTok); } // token input baru dihitung setelah model benar-benar menjawab
       const t = carry + dec.decode(chunk, { stream: true }), cut = t.lastIndexOf('\n');
       const use = cut >= 0 ? t.slice(0, cut) : ''; carry = cut >= 0 ? t.slice(cut + 1) : t;
-      let m; re.lastIndex = 0; while ((m = re.exec(use))) chars += m[1].length;
-      if (chars - pend > 4000) { const d = chars - pend; pend = chars; await tokAdd(st, d / 4); }
+      scan(use);
+      if (chars - pend > 4000) { const d = chars - pend; pend = chars; await add(d / 4); }
     },
-    async flush() { if (carry) { let m; re.lastIndex = 0; while ((m = re.exec(carry))) chars += m[1].length; } await tokAdd(st, (chars - pend) / 4); },
+    async flush() {
+      if (carry) scan(carry);
+      const est = charged + (chars - pend) / 4;
+      // angka asli dipakai bila ada; dibatasi agar nilai aneh dari gateway tidak merusak kuota
+      const final = usage > 0 ? Math.min(usage, Math.max(est * 4, 2000)) : est;
+      const delta = Math.round(final - charged);
+      await tokAdd(st, delta);
+      await stat(usage > 0 ? 'uok' : 'umiss'); // seberapa sering gateway mengirim usage asli
+    },
   }));
 }
+const RL = +process.env.RATE_LIMIT || 60;
+// Pembatas laju bersama lewat Upstash (berlaku lintas instance Vercel); bila KV tidak ada/gagal, pakai memori instance.
+async function rl(kind, ip, lim, win = 600) {
+  if (KV_URL && KV_TOKEN) {
+    try {
+      const h = new Uint8Array(await crypto.subtle.digest('SHA-256', _enc.encode('rl' + ip)));
+      const key = 'auralis:rl:' + kind + ':' + [...h.slice(0, 8)].map(x => x.toString(16).padStart(2, '0')).join('') + ':' + Math.floor(Date.now() / (win * 1000));
+      const [n] = await incrMany([[key, 1, win * 2]]);
+      return n > lim;
+    } catch {}
+  }
+  return limited(ip, kind);
+}
 const hits = new Map();
+let SO_OK = true; // false bila gateway menolak stream_options (usage asli)
 function limited(ip, kind = 'c') {
   // kind 'u' = cek pemakaian (ringan, batas 4x lebih longgar dan terpisah dari batas chat)
-  const now = Date.now(), LIM = (+process.env.RATE_LIMIT || 60) * (kind === 'u' ? 4 : 1), WIN = 10 * 60e3, k = kind + ip;
+  const now = Date.now(), LIM = RL * (kind === 'u' ? 4 : 1), WIN = 10 * 60e3, k = kind + ip;
   const a = (hits.get(k) || []).filter(t => now - t < WIN);
   if (a.length >= LIM) return true;
   a.push(now); hits.set(k, a);
@@ -229,7 +270,7 @@ export default async function handler(req) {
 
   if (req.method !== 'POST') return J({ error: { message: 'Method tidak didukung' } }, 405);
   if (+req.headers.get('content-length') > 3e6) return J({ error: { message: 'Lampiran terlalu besar' } }, 413);
-  if (limited(ip)) return J({ error: { message: 'Terlalu banyak permintaan. Coba lagi beberapa menit lagi.' } }, 429);
+  if (await rl('c', ip, RL)) return J({ error: { message: 'Terlalu banyak permintaan. Coba lagi beberapa menit lagi.' } }, 429);
   if (!gwKey) return J({ error: { message: 'QWEN_API_KEY belum diatur di server' } }, 503);
 
   let d; try { d = await req.json(); } catch { return J({ error: { message: 'Body tidak valid' } }, 400); }
@@ -243,6 +284,7 @@ export default async function handler(req) {
   const proUser = wantPro ? await isPro(req) : true;
   if (!['low', 'medium', 'high'].includes(body.reasoning_effort) || (body.reasoning_effort === 'high' && !proUser)) delete body.reasoning_effort;
   if (body.max_tokens) body.max_tokens = Math.min(+body.max_tokens || 4096, proUser ? 8192 : 4096);
+  if (SO_OK) body.stream_options = { include_usage: true };
   const pm = await pickModel(b.model, gwKey);
   body.model = pm.id;
   // model baru dari gateway yang belum ada di daftar bawaan dianggap Pro (biaya tidak diketahui); bebaskan lewat env FREE_MODELS
@@ -268,6 +310,8 @@ export default async function handler(req) {
   });
   try {
     r = await callGw();
+    // Gateway yang menolak stream_options: coba tanpa itu dan ingat supaya request berikutnya tidak gagal dua kali
+    if (r.status === 400 && body.stream_options) { delete body.stream_options; const r2 = await callGw(); if (r2.status !== 400) SO_OK = false; r = r2; }
     // Beberapa model menolak parameter upaya: coba lagi tanpa reasoning_effort, lalu tanpa max_tokens
     if (r.status === 400 && body.reasoning_effort) { delete body.reasoning_effort; r = await callGw(); }
     if (r.status === 400 && b.max_tokens && body.max_tokens) { delete body.max_tokens; r = await callGw(); }
@@ -282,11 +326,11 @@ export default async function handler(req) {
   let src = r.body;
   const extra = {};
   const tc = tk || (KV_URL && KV_TOKEN ? { key: null } : null);
-  if (tc) tc.model = String(body.model).slice(0, 40);
+  if (tc) { tc.model = String(body.model).slice(0, 40); tc.feat = ['chat', 'sug', 'mem', 'cls', 'sum'].includes(d.f) ? d.f : 'chat'; } // fitur pemanggil, untuk statistik admin
   if (tc && r.ok && src) { src = countStream(src, tc, inTok); if (tk) { extra['x-tok-used'] = String(tk.used + inTok); extra['x-tok-limit'] = String(tk.limit); extra['x-tok-reset'] = String(tk.reset); } }
   const convert = an && r.ok && src;
   return new Response(convert ? toAnthropicStream(src) : src, {
     status: r.status,
     headers: { ...cors, ...extra, 'content-type': convert ? 'text/event-stream' : (r.headers.get('content-type') || 'text/event-stream'), 'cache-control': 'no-store' },
   });
-    }
+}
