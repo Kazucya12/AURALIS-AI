@@ -840,7 +840,7 @@ async function reply(o){
  o=o||{};busyUI(true);ctl=new AbortController();
  $$('.m.a [data-a=rg],.m.a [data-a=rgm],.m.a .vn').forEach(x=>x.remove());sugClear();
  const b=bub('assistant','',1),bc=b.querySelector('.bc');bc.innerHTML='<div class="dots"><i></i><i></i><i></i></div>';stick(1);
- const vk=o.keep&&o.keep.vis?o.keep.vis:visKind(),ved=!!(vk&&cur.msgs.length>1&&(()=>{const p=cur.msgs[cur.msgs.length-2];return p&&p.r=='assistant'&&p.vis})());
+ const vk=o.vis||(o.keep&&o.keep.vis?o.keep.vis:visKind()),ved=!!(vk&&cur.msgs.length>1&&(()=>{const p=cur.msgs[cur.msgs.length-2];return p&&p.r=='assistant'&&p.vis})());
  let out='',raf=0,src=null,ex=vk?visDirective(vk,ved):'';const paint=()=>{raf=0;bc.innerHTML=vk?visPlace(out):md(out,0,src)+'<span class="caret"></span>';stick()};
  try{
   if(S().web&&AVW&&isPro()&&!vk){const q=lastUserText();if(q&&needsWeb(q)){bc.innerHTML='<div class="dots"><i></i><i></i><i></i></div><div class="hint" style="margin-top:6px">Mencari di web… <button class="ghost" data-wskip style="padding:3px 10px;margin-left:8px;font-size:.9em">Lewati</button></div>';
@@ -1978,34 +1978,34 @@ $('#fgp').addEventListener('keydown',e=>{if(e.key=='Enter'){e.stopPropagation();
 /* ===== pembuat gambar dan video: cukup minta lewat teks (api/gen.js) ===== */
 let GENV={enabled:false,image:false,video:false,limits:{}};
 const GAPI=window.AURALIS_GEN||'/api/gen',GBLOB=new Map();
-const GCLS='Tentukan apakah pesan terakhir pengguna meminta MEMBUAT (menghasilkan) sebuah gambar/foto/ilustrasi/logo/poster baru, ATAU video/animasi baru. Jawab HANYA JSON satu baris: {"intent":"image"|"video"|"chat","ratio":"1:1"|"16:9"|"9:16","prompt":"..."}. Aturan: pertanyaan tentang gambar atau video, permintaan kode/penjelasan/tulisan, atau menganalisis gambar yang sudah ada = "chat". Bila pesan merujuk hasil sebelumnya (mis. "buat lagi tapi malam hari", "ubah jadi merah"), gabungkan dengan prompt sebelumnya. "prompt" (hanya bila bukan chat) = prompt bahasa Inggris yang detail dan visual (subjek, gaya, pencahayaan, komposisi, suasana; untuk video tambahkan gerakan kamera/subjek), maksimal 70 kata, tanpa menambah orang atau merek yang tidak disebut. ratio: 16:9 untuk pemandangan/banner/youtube/film, 9:16 untuk wallpaper HP/story/reels/tiktok, selain itu 1:1. Bila pengguna meminta gaya 3D, wajib tulis di prompt: 3D render, soft studio lighting, volumetric light, depth of field, highly detailed, octane render; bila realistis/foto tulis: photorealistic, natural lighting, 85mm lens, sharp focus.';
-const GMEDIA=/gambar|render|maskot|foto|ilustrasi|lukis|poster|logo|wallpaper|image|picture|photo|draw|video|animasi|klip|reel|film/i,GFOLLOW=/\b(lagi|ubah|ganti|versi|jadi|tambah|tambahkan|lebih|coba|variasi|serupa)\b/i;
+const GCLS='Kamu pengarah media. Tentukan apakah pesan terakhir pengguna meminta MEMBUATKAN gambar atau video baru, lalu pilih jenisnya. Jawab HANYA JSON satu baris: {"intent":"image"|"video"|"vector"|"chat","style":"photo"|"3d"|"art"|"vector","ratio":"1:1"|"16:9"|"9:16","prompt":"..."}. Arti intent: "image" = pengguna ingin sebuah gambar jadi (foto, realistis, render 3D, lukisan, ilustrasi, karakter, maskot, poster, wallpaper, avatar, pemandangan, atau karya visual apa pun); "video" = klip video atau animasi bergerak; "vector" = diagram, flowchart, denah, infografis, grafik, ikon atau logo datar, atau pengguna secara eksplisit meminta SVG, kode, atau vektor; "chat" = bukan permintaan membuat media, misalnya bertanya tentang gambar atau video, meminta kode, penjelasan, tulisan, tips, atau menganalisis gambar yang sudah ada. Bila ragu antara chat dan media, pilih chat. Bila pesan merujuk hasil sebelumnya (mis. "buat lagi tapi malam hari", "ubah jadi merah"), gabungkan dengan prompt sebelumnya. style: "photo" untuk foto atau realistis, "3d" untuk render 3D, "art" untuk ilustrasi, lukisan, atau kartun, "vector" untuk vektor. "prompt" (hanya bila bukan chat) = prompt bahasa Inggris yang detail dan visual (subjek, gaya, pencahayaan, komposisi, suasana; untuk video tambahkan gerakan kamera atau subjek), maksimal 70 kata, tanpa menambah orang atau merek yang tidak disebut. ratio: 16:9 untuk pemandangan, banner, youtube, film; 9:16 untuk wallpaper HP, story, reels, tiktok; selain itu 1:1. Bila pengguna meminta gaya 3D, wajib tulis di prompt: 3D render, soft studio lighting, volumetric light, depth of field, highly detailed, octane render; bila realistis atau foto tulis: photorealistic, natural lighting, 85mm lens, sharp focus.';
+const GMEDIA=/gambar|render|maskot|foto|ilustrasi|lukis|poster|logo|wallpaper|image|picture|photo|draw|video|animasi|klip|reel|film|desain|design|banner|sketsa|sampul|cover|thumbnail|ikon|icon|avatar|karakter|potret|lukisan|pemandangan|stiker|sticker|mockup|visual|artwork|3d/i,GFOLLOW=/\b(lagi|ubah|ganti|versi|jadi|tambah|tambahkan|lebih|coba|variasi|serupa)\b/i;
 async function loadGen(){try{GENV=await(await fetch(GAPI)).json()}catch{GENV={enabled:false}}genUI()}
-function genUI(){const i=$('#in');if(i&&GENV.enabled&&D&&isPro())i.placeholder='Tulis pesan... (coba: "buatkan gambar kucing di atap" atau "buatkan video ombak")'}
+function genUI(){const i=$('#in');if(i&&GENV.enabled&&D)i.placeholder='Tulis pesan... (coba: "buatkan gambar kucing di atap" atau "buatkan video ombak")'}
 const genPrev=()=>{const m=cur&&cur.msgs[cur.msgs.length-2];return m&&m.gen?m:null};
 async function genDecide(t){
- const prev=genPrev();
- if(!(GMEDIA.test(t)||(prev&&t.length<140&&GFOLLOW.test(t))))return null;
  const ctx=cur.msgs.slice(-5,-1).map(m=>(m.r=='user'?'Pengguna: ':'Asisten: ')+(m.gen?'[membuat '+(m.gen.k=='video'?'video':'gambar')+' dengan prompt: '+(m.gen.ep||m.gen.p)+']':m.c.replace(/```[\s\S]*?```/g,'[kode]').slice(0,300))).join('\n');
  let raw;try{raw=await quickAsk(GCLS,(ctx?'Percakapan sebelumnya:\n'+ctx+'\n\n':'')+'Pesan terakhir pengguna: '+t,12000)}catch{return null}
  const m=raw.match(/\{[\s\S]*\}/);if(!m)return null;let j;try{j=JSON.parse(m[0])}catch{return null}
- if(j.intent!='image'&&j.intent!='video')return null;
- if(j.intent=='video'&&!GENV.video){toast('Pembuat video belum diaktifkan di server ini');return null}
+ if(!['image','video','vector'].includes(j.intent))return{kind:'chat'};
  const ep=typeof j.prompt=='string'&&j.prompt.trim().length>5?j.prompt.trim().slice(0,900):t;
- return{kind:j.intent,ratio:['1:1','16:9','9:16'].includes(j.ratio)?j.ratio:'1:1',ep}}
+ return{kind:j.intent,style:['photo','3d','art','vector'].includes(j.style)?j.style:'art',ratio:['1:1','16:9','9:16'].includes(j.ratio)?j.ratio:'1:1',ep}}
+/* pintu murah: hanya pesan yang menyebut hal visual yang dikirim ke AI penilai; keputusan jenis media sepenuhnya oleh AI */
 function genMaybe(t){
- if(!GENV.enabled)return false;
- const prev=genPrev();if(!((GMEDIA.test(t)&&PHOTO.test(t))||(prev&&t.length<140&&GFOLLOW.test(t))))return false;
+ if(!GENV.enabled||t.length>600||t.includes('```'))return false;
+ const prev=genPrev();if(!(GMEDIA.test(t)||(prev&&t.length<140&&GFOLLOW.test(t))))return false;
  genFlow(t);return true}
 async function genFlow(t){
  busyUI(true);ctl=new AbortController();
  const b=bub('assistant','',1),bc=b.querySelector('.bc');bc.innerHTML='<div class="dots"><i></i><i></i><i></i></div>';stick(1);
  const d=await genDecide(t),el=b.closest('.m');
  if(ctl.signal.aborted){if(el)el.remove();busyUI(false);return}
- if(!d){if(el)el.remove();busyUI(false);return reply()}
- if(!isPro()){if(el)el.remove();busyUI(false);return proView('gen')}
+ if(!d||d.kind=='chat'){if(el)el.remove();busyUI(false);return reply()}
+ /* vektor, video tanpa pembuat video, atau gambar bergaya seni di akun gratis -> jalur SVG dari kode */
+ if(d.kind=='vector'||d.style=='vector'||(d.kind=='video'&&!GENV.video)){if(el)el.remove();busyUI(false);return reply({vis:d.kind=='video'?'video':'image'})}
  return genRun({prompt:t,kind:d.kind,ratio:d.ratio,ep:d.ep,b})}
 
+const GCOST={image:1500,video:6000}; // perkiraan biaya token per hasil, dipotong dari kuota
 const gSleep=(ms,sig)=>new Promise((ok,no)=>{const t=setTimeout(ok,ms);if(sig)sig.addEventListener('abort',()=>{clearTimeout(t);no(Object.assign(Error('Dibatalkan'),{name:'AbortError'}))},{once:true})});
 async function gPost(b){
  const r=await fetch(GAPI,{method:'POST',signal:ctl&&ctl.signal,headers:{'content-type':'application/json',...LH()},body:JSON.stringify(b)});
@@ -2018,7 +2018,7 @@ function gShrink(blob){ // kecilkan gambar hasil jadi WebP ringan supaya muat di
    c.getContext('2d').drawImage(im,0,0,c.width,c.height);let d=c.toDataURL('image/webp',.86);if(!/^data:image\/webp/.test(d))d=c.toDataURL('image/jpeg',.86);URL.revokeObjectURL(u);ok(d)}catch(e){no(e)}};
   im.onerror=()=>{URL.revokeObjectURL(u);no(Error('Gambar tidak bisa dibaca'))};im.src=u})}
 async function genRun(o){
- if(!isPro())return proView('gen');
+ if(overLim()){if(o.b){const e=o.b.closest('.m');if(e)e.remove()}busyUI(false);return limHit()}
  const kind=o.kind,ratio=o.ratio||'1:1',prompt=o.prompt,ep=o.ep||prompt;
  if(!ctl||ctl.signal.aborted){busyUI(true);ctl=new AbortController()}
  const b=o.b||bub('assistant','',1),bc=b.querySelector('.bc'),t0=Date.now();
@@ -2044,7 +2044,7 @@ async function genRun(o){
   cur.msgs.push(m);cur.t=ts;
   bc.innerHTML=md(m.c,1);
   b.insertAdjacentHTML('beforeend',`<div class="ts" title="${esc(fullT(ts))}">${fmtT(ts)} · ${kind=='video'?'Video':'Gambar'}</div>`);
-  acts(b,true,0,m);b.closest('.m').dataset.i=cur.msgs.length-1}
+  acts(b,true,0,m);b.closest('.m').dataset.i=cur.msgs.length-1;usage(GCOST[kind]||1500);meterUI(1);usageSync()}
  catch(e){fail=e.name=='AbortError'?'Dibatalkan.':(e.message=='Failed to fetch'?'Tidak bisa terhubung ke server.':e.message);status=e.status||0}
  clearInterval(tk);
  if(fail){bc.innerHTML='<div class="gfail">⚠️ '+esc(fail)+'</div>';if(status==402)proView('gen')}
@@ -2293,7 +2293,7 @@ function visMedia(b,m){
  const raw=visRaw(m.c);if(!raw)return;
  const svg=svgClean(raw),box=svgBox(svg),an=svgAnim(svg),bc=b.querySelector('.bc');
  const card=document.createElement('div');card.className='vis';card.dataset.k=m.vis;
- card.innerHTML=`<div class="vfr" style="aspect-ratio:${box.w}/${box.h}"><img alt="Hasil dari kode" draggable="false"></div><div class="vact"><button data-v="dl">Unduh PNG</button><button data-v="sv">Unduh SVG</button>${an?'<button data-v="wm">Rekam video</button>':''}<button data-v="ed">Ubah</button><button data-v="co">Lihat kode</button>${GENV&&GENV.enabled&&isPro()?'<button data-v="ph">Versi foto realistis</button>':''}</div>`;
+ card.innerHTML=`<div class="vfr" style="aspect-ratio:${box.w}/${box.h}"><img alt="Hasil dari kode" draggable="false"></div><div class="vact"><button data-v="dl">Unduh PNG</button><button data-v="sv">Unduh SVG</button>${an?'<button data-v="wm">Rekam video</button>':''}<button data-v="ed">Ubah</button><button data-v="co">Lihat kode</button>${GENV&&GENV.enabled?'<button data-v="ph">Versi foto realistis</button>':''}</div>`;
  card.querySelector('img').src=svgUrl(svg);card._svg=svg;card._box=box;
  if(bc){b.insertBefore(card,bc);bc.classList.add('vishid')}else b.appendChild(card)}
 const visDl=(blob,n)=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};
