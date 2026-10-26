@@ -24,9 +24,12 @@ const STY = [
   [/sketsa|pensil|sketch|pencil/i, 'pencil sketch, detailed shading, monochrome', 0.7],
   [/lukisan|minyak|painting/i, 'oil painting, brush strokes, rich colors', 0.65],
 ];
-function editBody(prompt, bytes, str) {
+// mode 'b64' = foto sebagai string base64 (utama); 'arr' = foto sebagai larik byte (cadangan)
+function editBody(prompt, bytes, b64, str, mode) {
   const st = STY.find(x => x[0].test(prompt));
-  return { prompt: prompt + (st ? ', ' + st[1] : '') + ', masterpiece, best quality, highly detailed', negative_prompt: 'lowres, bad anatomy, deformed face, extra fingers, blurry, text, watermark, nsfw', image: Array.from(bytes), strength: str || (st ? st[2] : 0.6), num_steps: 20, guidance: 7.5 };
+  const body = { prompt: prompt + (st ? ', ' + st[1] : '') + ', masterpiece, best quality, highly detailed', negative_prompt: 'lowres, bad anatomy, deformed face, extra fingers, blurry, text, watermark, nsfw', strength: str || (st ? st[2] : 0.6), num_steps: 20, guidance: 7.5 };
+  if (mode === 'arr') body.image = Array.from(bytes); else body.image_b64 = b64;
+  return body;
 }
 const READY = !!(ACC && TOKEN);
 const LIM = { image: +process.env.GEN_IMG_DAILY || 30, edit: +process.env.GEN_EDIT_DAILY || 20 };
@@ -117,11 +120,11 @@ export default async function handler(req) {
   const kind = d.kind === 'edit' ? 'edit' : 'image';
   const prompt = String(d.prompt || '').trim().slice(0, 1500);
   if (prompt.length < 3) return E('Tulis deskripsi dulu', 400);
-  let imgBytes = null;
+  let imgBytes = null, imgB64 = '';
   if (kind === 'edit') {
     const im = String(d.image || ''), mm = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+\/=]+)$/.exec(im);
     if (!mm || im.length > 1.4e6) return E('Gambar yang diedit tidak valid atau terlalu besar', 400);
-    try { imgBytes = Uint8Array.from(atob(mm[2]), c => c.charCodeAt(0)); } catch { return E('Gambar tidak bisa dibaca', 400); }
+    try { imgB64 = mm[2]; imgBytes = Uint8Array.from(atob(imgB64), c => c.charCodeAt(0)); } catch { return E('Gambar tidak bisa dibaca', 400); }
   }
 
   // kuota token (dipotong setelah gambar berhasil dibuat)
@@ -156,25 +159,30 @@ export default async function handler(req) {
   // panggil Cloudflare Workers AI (gambar langsung dikembalikan, tanpa polling)
   let img = '', mime = 'image/jpeg', em = '', st = 0;
   try {
-    const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${ACC}/ai/run/${kind === 'edit' ? EDIT_MODEL : MODEL}`, {
-      method: 'POST',
-      headers: { authorization: 'Bearer ' + TOKEN, 'content-type': 'application/json' },
-      body: JSON.stringify(kind === 'edit' ? editBody(prompt, imgBytes, +d.strength > 0 ? Math.min(0.95, Math.max(0.2, +d.strength)) : 0) : { prompt, steps: STEPS }),
-    });
-    st = r.status;
-    const ct = r.headers.get('content-type') || '';
-    if (r.ok && ct.startsWith('image/')) { mime = ct.split(';')[0]; img = toB64(await r.arrayBuffer()); }
-    else {
-      const p = await r.json().catch(() => ({}));
-      img = (r.ok && p && p.result && p.result.image) || '';
-      em = String((p.errors && p.errors[0] && p.errors[0].message) || p.error || '');
+    const strength = +d.strength > 0 ? Math.min(0.95, Math.max(0.2, +d.strength)) : 0;
+    const modes = kind === 'edit' ? ['b64', 'arr'] : ['t2i']; // edit: coba base64 dulu, lalu larik byte
+    for (const mode of modes) {
+      const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${ACC}/ai/run/${kind === 'edit' ? EDIT_MODEL : MODEL}`, {
+        method: 'POST',
+        headers: { authorization: 'Bearer ' + TOKEN, 'content-type': 'application/json' },
+        body: JSON.stringify(kind === 'edit' ? editBody(prompt, imgBytes, imgB64, strength, mode) : { prompt, steps: STEPS }),
+      });
+      st = r.status;
+      const ct = r.headers.get('content-type') || '';
+      if (r.ok && ct.startsWith('image/')) { mime = ct.split(';')[0]; img = toB64(await r.arrayBuffer()); }
+      else {
+        const p = await r.json().catch(() => ({}));
+        img = (r.ok && p && p.result && p.result.image) || '';
+        em = String((p.errors && p.errors[0] && p.errors[0].message) || p.error || '');
+      }
+      if (img || st === 401 || st === 403 || st === 429) break;
     }
   } catch { await undo(); return E('Penyedia tidak bisa dihubungi', 502); }
   if (!img) {
     await undo();
     if (st === 429 || /allocation|neurons|rate|limit/i.test(em)) return E('Kuota gratis generator hari ini habis. Coba lagi besok.', 429, 'capacity');
     if (st === 401 || st === 403) return E('Token Cloudflare ditolak. Periksa CF_API_TOKEN dan izin Workers AI.', 502);
-    return E((em || 'Penyedia menolak permintaan').slice(0, 200), st >= 500 ? 502 : 400);
+    return E(((kind === 'edit' ? 'Edit foto gagal (' + st + '): ' : '') + (em || 'Penyedia menolak permintaan')).slice(0, 240), st >= 500 ? 502 : 400);
   }
   if (tk) { try { const r2 = await kv(['INCRBY', tk.key, COSTr[kind]]); if (r2 === COSTr[kind]) await kv(['EXPIRE', tk.key, TW]); } catch {} }
   if (KV_URL && KV_TOKEN) await Promise.all([stat('tok', COSTr[kind]), stat('tm:gen-' + kind, COSTr[kind]), stat('tf:gen', COSTr[kind]), stat('gen_' + kind)]); // statistik admin
