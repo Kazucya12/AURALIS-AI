@@ -24,9 +24,9 @@ const STY = [
   [/sketsa|pensil|sketch|pencil/i, 'pencil sketch, detailed shading, monochrome', 0.7],
   [/lukisan|minyak|painting/i, 'oil painting, brush strokes, rich colors', 0.65],
 ];
-function editBody(prompt, bytes) {
+function editBody(prompt, bytes, str) {
   const st = STY.find(x => x[0].test(prompt));
-  return { prompt: prompt + (st ? ', ' + st[1] : '') + ', masterpiece, best quality, highly detailed', negative_prompt: 'lowres, bad anatomy, deformed face, extra fingers, blurry, text, watermark, nsfw', image: Array.from(bytes), strength: st ? st[2] : 0.6, num_steps: 20, guidance: 7.5 };
+  return { prompt: prompt + (st ? ', ' + st[1] : '') + ', masterpiece, best quality, highly detailed', negative_prompt: 'lowres, bad anatomy, deformed face, extra fingers, blurry, text, watermark, nsfw', image: Array.from(bytes), strength: str || (st ? st[2] : 0.6), num_steps: 20, guidance: 7.5 };
 }
 const READY = !!(ACC && TOKEN);
 const LIM = { image: +process.env.GEN_IMG_DAILY || 30, edit: +process.env.GEN_EDIT_DAILY || 20 };
@@ -71,6 +71,15 @@ const RLD = async (kind, ip, lim, win = 600) => { // batas laju bersama lewat Up
   }
   return limited(kind + ip, lim, win * 1000);
 };
+// pengaturan dari panel admin (KV auralis:cfg), menimpa env; di-cache 30 detik
+let CFG = {}, CFGT = 0;
+async function cfg() {
+  if (!KV_URL || !KV_TOKEN || Date.now() - CFGT < 30000) return CFG;
+  CFGT = Date.now();
+  try { const r = await kv(['GET', 'auralis:cfg']); CFG = r ? JSON.parse(r) : {}; } catch {}
+  return CFG;
+}
+const num = (v, d) => (v === undefined || v === null || v === '' || !Number.isFinite(+v)) ? d : +v;
 const hits = new Map();
 function limited(key, n, win) {
   const now = Date.now(), a = (hits.get(key) || []).filter(t => now - t < win);
@@ -89,8 +98,12 @@ export default async function handler(req) {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
   if (!ok) return E('Origin tidak diizinkan', 403);
   const ip = (req.headers.get('x-forwarded-for') || 'x').split(',')[0].trim();
+  const C = await cfg();
+  const LIMr = { image: num(C.imgDaily, LIM.image), edit: num(C.editDaily, LIM.edit) }, CAPr = { image: num(C.capImg, CAP.image), edit: num(C.capEdit, CAP.edit) };
+  const COSTr = { image: num(C.imgTok, COST.image), edit: num(C.editTok, COST.edit), video: 0 };
+  const TF = num(C.tokFree, TOK_FREE), TP = num(C.tokPro, TOK_PRO), TW = num(C.winH, 6) * 3600;
 
-  if (req.method === 'GET') return J({ enabled: READY, image: READY, video: false, edit: READY, limits: LIM, costs: COST });
+  if (req.method === 'GET') return J({ enabled: READY, image: READY, video: false, edit: READY, limits: LIMr, costs: COSTr });
   if (req.method !== 'POST') return E('Metode tidak didukung', 405);
   if (!READY) return E('Generator belum diatur di server (CF_ACCOUNT_ID dan CF_API_TOKEN)', 503);
   if (+req.headers.get('content-length') > 1.6e6) return E('Permintaan terlalu besar', 413);
@@ -115,10 +128,10 @@ export default async function handler(req) {
   let tk = null;
   if (PRO_SECRET && KV_URL && KV_TOKEN) {
     try {
-      const key = await tokKey(L.who || 'I' + ip), limit = L.pro ? TOK_PRO : TOK_FREE, used = +(await kv(['GET', key])) || 0;
-      if (used + COST[kind] > limit) {
-        const ttl = used ? await kv(['PTTL', key]) : -2, mnt = Math.ceil((ttl > 0 ? ttl : TOK_WIN * 1000) / 60000);
-        return E(`Kuota token tidak cukup untuk gambar (butuh sekitar ${COST[kind]}). Reset dalam ${Math.floor(mnt / 60)} jam ${mnt % 60} menit.`, 429, 'quota');
+      const key = await tokKey(L.who || 'I' + ip), limit = L.pro ? TP : TF, used = +(await kv(['GET', key])) || 0;
+      if (used + COSTr[kind] > limit) {
+        const ttl = used ? await kv(['PTTL', key]) : -2, mnt = Math.ceil((ttl > 0 ? ttl : TW * 1000) / 60000);
+        return E(`Kuota token tidak cukup untuk gambar (butuh sekitar ${COSTr[kind]}). Reset dalam ${Math.floor(mnt / 60)} jam ${mnt % 60} menit.`, 429, 'quota');
       }
       tk = { key };
     } catch {}
@@ -130,15 +143,15 @@ export default async function handler(req) {
       const day = dayKey();
       const uk = `auralis:gen:${kind}:${L.id || 'ip-' + ip}:${day}`, gk = `auralis:gen:cap:${kind}:${day}`;
       for (const [k, lim, msg, code] of [
-        [uk, LIM[kind], `Batas harian gambar tercapai (${LIM[kind]}/hari). Coba lagi besok.`, 'quota'],
-        [gk, CAP[kind], 'Kapasitas gambar hari ini sudah penuh untuk semua pengguna. Coba lagi besok.', 'capacity'],
+        [uk, LIMr[kind], `Batas harian gambar tercapai (${LIMr[kind]}/hari). Coba lagi besok.`, 'quota'],
+        [gk, CAPr[kind], 'Kapasitas gambar hari ini sudah penuh untuk semua pengguna. Coba lagi besok.', 'capacity'],
       ]) {
         const n = await kv(['INCR', k]); taken.push(k);
         if (n === 1) await kv(['EXPIRE', k, 90000]);
         if (n > lim) { await undo(); return E(msg, 429, code); }
       }
     } catch { await undo(); return E('Penyimpanan sementara bermasalah. Coba lagi.', 503); }
-  } else if (limited('q:' + (L.id || ip) + kind, LIM[kind], 864e5)) return E('Batas harian tercapai', 429, 'quota');
+  } else if (limited('q:' + (L.id || ip) + kind, LIMr[kind], 864e5)) return E('Batas harian tercapai', 429, 'quota');
 
   // panggil Cloudflare Workers AI (gambar langsung dikembalikan, tanpa polling)
   let img = '', mime = 'image/jpeg', em = '', st = 0;
@@ -146,7 +159,7 @@ export default async function handler(req) {
     const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${ACC}/ai/run/${kind === 'edit' ? EDIT_MODEL : MODEL}`, {
       method: 'POST',
       headers: { authorization: 'Bearer ' + TOKEN, 'content-type': 'application/json' },
-      body: JSON.stringify(kind === 'edit' ? editBody(prompt, imgBytes) : { prompt, steps: STEPS }),
+      body: JSON.stringify(kind === 'edit' ? editBody(prompt, imgBytes, +d.strength > 0 ? Math.min(0.95, Math.max(0.2, +d.strength)) : 0) : { prompt, steps: STEPS }),
     });
     st = r.status;
     const ct = r.headers.get('content-type') || '';
@@ -163,7 +176,7 @@ export default async function handler(req) {
     if (st === 401 || st === 403) return E('Token Cloudflare ditolak. Periksa CF_API_TOKEN dan izin Workers AI.', 502);
     return E((em || 'Penyedia menolak permintaan').slice(0, 200), st >= 500 ? 502 : 400);
   }
-  if (tk) { try { const r2 = await kv(['INCRBY', tk.key, COST[kind]]); if (r2 === COST[kind]) await kv(['EXPIRE', tk.key, TOK_WIN]); } catch {} }
-  if (KV_URL && KV_TOKEN) await Promise.all([stat('tok', COST[kind]), stat('tm:gen-' + kind, COST[kind]), stat('tf:gen', COST[kind]), stat('gen_' + kind)]); // statistik admin
+  if (tk) { try { const r2 = await kv(['INCRBY', tk.key, COSTr[kind]]); if (r2 === COSTr[kind]) await kv(['EXPIRE', tk.key, TW]); } catch {} }
+  if (KV_URL && KV_TOKEN) await Promise.all([stat('tok', COSTr[kind]), stat('tm:gen-' + kind, COSTr[kind]), stat('tf:gen', COSTr[kind]), stat('gen_' + kind)]); // statistik admin
   return J({ ok: true, id: 'cf', kind, img: `data:${mime};base64,${img}` });
 }
