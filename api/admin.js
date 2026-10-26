@@ -3,6 +3,7 @@
 // Env wajib: RESEND_API_KEY + MAIL_FROM (kirim kode), PRO_SECRET (tanda tangan kode), KV_REST_API_URL + KV_REST_API_TOKEN (sesi).
 // Env opsional: ADMIN_EMAIL, ALLOWED_ORIGINS.
 // Sesi admin berlaku 6 jam dan dipakai api/pro.js lewat header x-admin-session.
+// BARU: action cfg_get / cfg_set menyimpan pengaturan token di KV (kunci auralis:cfg), hanya untuk sesi admin yang sah.
 export const config = { runtime: 'edge' };
 
 const KV_URL = (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '').trim().replace(/\/+$/, '');
@@ -14,6 +15,8 @@ const MAIL_API = (process.env.RESEND_URL || 'https://api.resend.com/emails').tri
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'akbarzenito@gmail.com').trim().toLowerCase();
 const TTL = 10 * 60e3, MAX_TRY = 5, MAX_SEND_HOUR = 5, SESSION = 6 * 3600;
 const enc = new TextEncoder();
+// kolom pengaturan yang boleh disimpan beserta batasnya
+const CFG_KEYS = { tokFree: [0, 1e7], tokPro: [0, 1e7], winH: [1, 72], imgTok: [0, 1e5], editTok: [0, 1e5], imgDaily: [0, 1000], editDaily: [0, 1000], capImg: [0, 1e5], capEdit: [0, 1e5] };
 
 async function kv(cmd) {
   const r = await fetch(KV_URL, { method: 'POST', headers: { authorization: 'Bearer ' + KV_TOKEN, 'content-type': 'application/json' }, body: JSON.stringify(cmd) });
@@ -29,6 +32,11 @@ async function mac(s) {
 function same(a, b) { if (a.length !== b.length) return false; let x = 0; for (let i = 0; i < a.length; i++) x |= a.charCodeAt(i) ^ b.charCodeAt(i); return x === 0; }
 const code6 = () => String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, '0');
 const rand = n => hex(crypto.getRandomValues(new Uint8Array(n)));
+async function sessOk(req) {
+  const s = String(req.headers.get('x-admin-session') || '');
+  if (!/^[0-9a-f]{64}$/.test(s)) return false;
+  try { return !!(await kv(['GET', 'auralis:adm:' + (await sha(s))])); } catch { return false; }
+}
 
 const hits = new Map();
 function limited(key, LIM) {
@@ -54,6 +62,23 @@ export default async function handler(req) {
   if (limited('ip:' + ip, 12)) return E('Terlalu banyak permintaan. Coba lagi beberapa menit lagi.', 429);
 
   let d; try { d = await req.json(); } catch { return E('Body tidak valid', 400); }
+
+  if (d.action === 'cfg_get' || d.action === 'cfg_set') {
+    if (!(await sessOk(req))) return E('Sesi tidak valid', 401);
+    try {
+      if (d.action === 'cfg_get') { const raw = await kv(['GET', 'auralis:cfg']); return J({ ok: true, cfg: raw ? JSON.parse(raw) : {} }); }
+      const clean = {};
+      for (const [k, [lo, hi]] of Object.entries(CFG_KEYS)) {
+        const v = d.cfg && d.cfg[k];
+        if (v === undefined || v === null || v === '') continue;
+        const n = Math.round(+v);
+        if (!Number.isFinite(n) || n < lo || n > hi) return E(`Nilai ${k} harus antara ${lo} dan ${hi}`, 400);
+        clean[k] = n;
+      }
+      if (Object.keys(clean).length) await kv(['SET', 'auralis:cfg', JSON.stringify(clean)]); else await kv(['DEL', 'auralis:cfg']);
+      return J({ ok: true, cfg: clean });
+    } catch { return E('Penyimpanan sementara bermasalah', 503); }
+  }
 
   if (d.action === 'check' || d.action === 'logout') {
     const s = String(req.headers.get('x-admin-session') || '');
