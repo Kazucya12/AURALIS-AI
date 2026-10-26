@@ -178,6 +178,22 @@ export default async function handler(req) {
       if (img || st === 401 || st === 403 || st === 429) break;
     }
   } catch { await undo(); return E('Penyedia tidak bisa dihubungi', 502); }
+  // cadangan edit: bila img2img gagal, model gambar-ke-teks mendeskripsikan foto lalu FLUX membuat versi gayanya
+  if (!img && kind === 'edit' && ![401, 403, 429].includes(st)) {
+    try {
+      const run = (model, body) => fetch(`https://api.cloudflare.com/client/v4/accounts/${ACC}/ai/run/${model}`, { method: 'POST', headers: { authorization: 'Bearer ' + TOKEN, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      const dr = await run('@cf/llava-hf/llava-1.5-7b-hf', { image: Array.from(imgBytes), prompt: 'Describe the main person or subject in this photo in one detailed sentence: gender, age, hair, clothing, expression, pose and background.', max_tokens: 160 });
+      const dj = await dr.json().catch(() => ({}));
+      const desc = String((dj.result && (dj.result.description || dj.result.response)) || '').trim().slice(0, 500);
+      if (desc) {
+        const stl = STY.find(x => x[0].test(prompt));
+        const fr = await run(MODEL, { prompt: (stl ? stl[1] : prompt.slice(0, 200)) + ', illustration of ' + desc + ', masterpiece, best quality, highly detailed', steps: STEPS });
+        const ct = fr.headers.get('content-type') || '';
+        if (fr.ok && ct.startsWith('image/')) { mime = ct.split(';')[0]; img = toB64(await fr.arrayBuffer()); }
+        else { const fj = await fr.json().catch(() => ({})); img = (fr.ok && fj && fj.result && fj.result.image) || ''; }
+      }
+    } catch {}
+  }
   if (!img) {
     await undo();
     if (st === 429 || /allocation|neurons|rate|limit/i.test(em)) return E('Kuota gratis generator hari ini habis. Coba lagi besok.', 429, 'capacity');
