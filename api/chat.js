@@ -87,13 +87,14 @@ async function incrMany(items) { // items: [key, by, ttlDetik]
 // Statistik harian (Asia/Jakarta): penghitung ringan di Upstash, tersimpan 40 hari. Gagal diam-diam.
 const dayKey = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
 async function stat(name, by) { try { const k = 'auralis:st:' + dayKey() + ':' + name, n = await kvCmd(by ? ['INCRBY', k, by] : ['INCR', k]); if (n === (by || 1)) await kvCmd(['EXPIRE', k, 40 * 86400]); } catch {} }
-// Batas token per 6 jam (perkiraan: 1 token per 4 karakter). Pro dihitung per lisensi, Gratis per IP.
+// Batas token per 6 jam (perkiraan: 1 token per 4 karakter). Pro dihitung per lisensi, Gratis per akun (x-uid) + IP.
 const TOK_FREE = +process.env.TOKEN_LIMIT_FREE || 15000, TOK_PRO = +process.env.TOKEN_LIMIT_PRO || 50000, TOK_WIN = 6 * 3600;
 const estTok = s => Math.ceil(String(s || '').length / 4);
 async function tokState(req, ip) {
   if (!PRO_SECRET || !KV_URL || !KV_TOKEN) return null;
   try {
-    const lic = await licInfo(req), who = lic ? 'L' + String(lic.c || lic.e) : 'I' + ip;
+    // ID akun dari browser (hash email): memisahkan kuota antar akun yang berbagi IP yang sama
+    const lic = await licInfo(req), uid = (req.headers.get('x-uid') || '').replace(/[^\w-]/g, '').slice(0, 40), who = lic ? 'L' + String(lic.c || lic.e) : 'I' + ip + (uid ? ':' + uid : '');
     const h = new Uint8Array(await crypto.subtle.digest('SHA-256', _enc.encode(who)));
     const key = 'auralis:tk:' + [...h.slice(0, 12)].map(x => x.toString(16).padStart(2, '0')).join('');
     const limit = lic ? TOK_PRO : TOK_FREE;
@@ -219,7 +220,7 @@ export default async function handler(req) {
   const ok = !origin || origin === own || allow.includes(origin);
   const cors = {
     'access-control-allow-origin': ok && origin ? origin : own,
-    'access-control-allow-headers': 'content-type,x-license',
+    'access-control-allow-headers': 'content-type,x-license,x-uid',
     'access-control-expose-headers': 'x-tok-used,x-tok-limit,x-tok-reset',
     'access-control-allow-methods': 'GET,POST,OPTIONS',
     vary: 'origin',
