@@ -1,11 +1,16 @@
-// Vercel Edge Function: generator gambar & edit foto lewat Replicate.
+// Vercel Edge Function: generator gambar, edit foto, dan video lewat Replicate.
 // Simpan sebagai api/gen.js. Env wajib: REPLICATE_API_TOKEN.
-// Env opsional: REPLICATE_IMAGE_MODEL (default flux-schnell), REPLICATE_EDIT_MODEL (default flux-kontext-pro).
+// Env opsional: REPLICATE_IMAGE_MODEL (flux-schnell), REPLICATE_EDIT_MODEL (flux-kontext-pro),
+// REPLICATE_VIDEO_MODEL (seedance-1-lite), VIDEO_RESOLUTION (480p), VIDEO_DURATION (5 detik),
+// GEN_VIDEO_DAILY (batas video per pengguna per hari, default 3), GEN_VIDEO_GLOBAL_DAILY (total semua pengguna, default 20).
 export const config = { runtime: 'edge' };
 
 const RTOKEN = (process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_KEY || process.env.REPLICATE_TOKEN || '').trim();
 const MODEL_IMG = (process.env.REPLICATE_IMAGE_MODEL || 'black-forest-labs/flux-schnell').trim();
 const MODEL_EDIT = (process.env.REPLICATE_EDIT_MODEL || 'black-forest-labs/flux-kontext-pro').trim();
+const MODEL_VIDEO = (process.env.REPLICATE_VIDEO_MODEL || 'bytedance/seedance-1-lite').trim();
+const VIDEO_RES = ['480p', '720p', '1080p'].includes((process.env.VIDEO_RESOLUTION || '').trim()) ? process.env.VIDEO_RESOLUTION.trim() : '480p';
+const VIDEO_DUR = Math.min(12, Math.max(3, +process.env.VIDEO_DURATION || 5));
 const RAPI = 'https://api.replicate.com/v1';
 const rh = { authorization: 'Bearer ' + RTOKEN, 'content-type': 'application/json' };
 
@@ -29,8 +34,8 @@ function editPrompt(prompt) {
 }
 
 const READY = !!RTOKEN;
-const LIM = { text: +process.env.GEN_TEXT_DAILY || 100, image: +process.env.GEN_IMG_DAILY || 30, edit: +process.env.GEN_EDIT_DAILY || 20 };
-const CAP = { text: +process.env.GEN_TEXT_GLOBAL_DAILY || 1000, image: +process.env.GEN_IMG_GLOBAL_DAILY || 200, edit: +process.env.GEN_EDIT_GLOBAL_DAILY || 100 };
+const LIM = { text: +process.env.GEN_TEXT_DAILY || 100, image: +process.env.GEN_IMG_DAILY || 30, edit: +process.env.GEN_EDIT_DAILY || 20, video: +process.env.GEN_VIDEO_DAILY || 3 };
+const CAP = { text: +process.env.GEN_TEXT_GLOBAL_DAILY || 1000, image: +process.env.GEN_IMG_GLOBAL_DAILY || 200, edit: +process.env.GEN_EDIT_GLOBAL_DAILY || 100, video: +process.env.GEN_VIDEO_GLOBAL_DAILY || 20 };
 const PRO_SECRET = (process.env.PRO_SECRET || '').trim();
 const KV_URL = (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '').trim().replace(/\/+$/, '');
 const KV_TOKEN = (process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '').trim();
@@ -57,7 +62,7 @@ async function lic(req) {
 }
 
 const TOK_FREE = +process.env.TOKEN_LIMIT_FREE || 15000, TOK_PRO = +process.env.TOKEN_LIMIT_PRO || 50000, TOK_WIN = 6 * 3600;
-const COST = { text: +process.env.GEN_TEXT_TOKENS || 50, image: +process.env.GEN_IMG_TOKENS || 500, edit: +process.env.GEN_EDIT_TOKENS || 800 };
+const COST = { text: +process.env.GEN_TEXT_TOKENS || 50, image: +process.env.GEN_IMG_TOKENS || 500, edit: +process.env.GEN_EDIT_TOKENS || 800, video: +process.env.GEN_VIDEO_TOKENS || 6000 };
 const dayKey = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
 async function tokKey(who) { const h = new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(who))); return 'auralis:tk:' + [...h.slice(0, 12)].map(x => x.toString(16).padStart(2, '0')).join(''); }
 async function stat(name, by) { try { const k = 'auralis:st:' + dayKey() + ':' + name, n = await kv(['INCRBY', k, by || 1]); if (n === (by || 1)) await kv(['EXPIRE', k, 40 * 86400]); } catch {} }
@@ -89,11 +94,22 @@ function limited(key, n, win) {
   a.push(now); hits.set(key, a); return false;
 }
 
+// Buat prediksi; bila model tidak punya endpoint resmi (404), pakai versi terbaru model tersebut
+async function createPred(model, input) {
+  let r = await fetch(RAPI + '/models/' + model + '/predictions', { method: 'POST', headers: rh, body: JSON.stringify({ input }) });
+  if (r.status === 404) {
+    const m = await fetch(RAPI + '/models/' + model, { headers: rh }).then(x => x.json()).catch(() => ({}));
+    const v = m && m.latest_version && m.latest_version.id;
+    if (v) r = await fetch(RAPI + '/predictions', { method: 'POST', headers: rh, body: JSON.stringify({ version: v, input }) });
+  }
+  return r;
+}
+
 export default async function handler(req) {
   const origin = req.headers.get('origin') || '', own = new URL(req.url).origin;
   const allow = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
   const ok = !origin || origin === own || allow.includes(origin);
-  const cors = { 'access-control-allow-origin': ok && origin ? origin : own, 'access-control-allow-headers': 'content-type,x-license', 'access-control-allow-methods': 'GET,POST,OPTIONS', vary: 'origin' };
+  const cors = { 'access-control-allow-origin': ok && origin ? origin : own, 'access-control-allow-headers': 'content-type,x-license,x-uid', 'access-control-allow-methods': 'GET,POST,OPTIONS', vary: 'origin' };
   const J = (o, st = 200) => new Response(JSON.stringify(o), { status: st, headers: { ...cors, 'content-type': 'application/json', 'cache-control': 'no-store' } });
   const E = (m, st, code) => J({ error: { message: m, code } }, st);
 
@@ -101,6 +117,9 @@ export default async function handler(req) {
   if (!ok) return E('Origin tidak diizinkan', 403);
 
   const ip = (req.headers.get('x-forwarded-for') || 'x').split(',')[0].trim();
+  // ID akun dari browser: memisahkan kuota antar akun yang berbagi IP yang sama
+  const uid = (req.headers.get('x-uid') || '').replace(/[^\w-]/g, '').slice(0, 40);
+  const who = ip + (uid ? ':' + uid : '');
 
   // Ambil hasil gambar dari Replicate (hanya host Replicate yang diizinkan)
   if (req.method === 'GET') {
@@ -108,15 +127,18 @@ export default async function handler(req) {
     if (f) {
       let fu; try { fu = new URL(f); } catch { return E('Berkas tidak valid', 400); }
       if (fu.protocol !== 'https:' || !(fu.hostname === 'replicate.delivery' || fu.hostname.endsWith('.replicate.delivery'))) return E('Berkas tidak diizinkan', 400);
-      const r = await fetch(fu.href);
+      const rr = req.headers.get('range');
+      const r = await fetch(fu.href, rr ? { headers: { range: rr } } : {});
       if (!r.ok) return E('Hasil tidak bisa diambil (mungkin sudah kedaluwarsa)', 404);
-      return new Response(r.body, { status: 200, headers: { ...cors, 'content-type': r.headers.get('content-type') || 'image/jpeg', 'cache-control': 'no-store' } });
+      const h = { ...cors, 'content-type': r.headers.get('content-type') || 'application/octet-stream', 'cache-control': 'no-store', 'accept-ranges': 'bytes' };
+      for (const k of ['content-length', 'content-range']) { const v = r.headers.get(k); if (v) h[k] = v; }
+      return new Response(r.body, { status: r.status === 206 ? 206 : 200, headers: h });
     }
     const C0 = await cfg();
     return J({
-      enabled: READY, text: false, image: READY, edit: READY,
-      limits: { text: num(C0.textDaily, LIM.text), image: num(C0.imgDaily, LIM.image), edit: num(C0.editDaily, LIM.edit) },
-      costs: { text: num(C0.textTok, COST.text), image: num(C0.imgTok, COST.image), edit: num(C0.editTok, COST.edit) },
+      enabled: READY, text: false, image: READY, edit: READY, video: READY,
+      limits: { text: num(C0.textDaily, LIM.text), image: num(C0.imgDaily, LIM.image), edit: num(C0.editDaily, LIM.edit), video: num(C0.vidDaily, LIM.video) },
+      costs: { text: num(C0.textTok, COST.text), image: num(C0.imgTok, COST.image), edit: num(C0.editTok, COST.edit), video: num(C0.vidTok, COST.video) },
     });
   }
   if (req.method !== 'POST') return E('Metode tidak didukung', 405);
@@ -140,23 +162,23 @@ export default async function handler(req) {
         if (!out || typeof out !== 'string') return J({ status: 'failed', error: 'Hasil kosong' });
         return J({ status: 'succeeded', file: out });
       }
-      if (p.status === 'failed' || p.status === 'canceled') return J({ status: p.status, error: String(p.error || 'Gagal membuat gambar').slice(0, 240) });
+      if (p.status === 'failed' || p.status === 'canceled') return J({ status: p.status, error: String(p.error || 'Gagal membuat hasil').slice(0, 240) });
       return J({ status: p.status || 'processing' });
     } catch { return E('Replicate tidak bisa dihubungi', 502); }
   }
 
   const C = await cfg();
-  const LIMr = { text: num(C.textDaily, LIM.text), image: num(C.imgDaily, LIM.image), edit: num(C.editDaily, LIM.edit) };
-  const CAPr = { text: num(C.capText, CAP.text), image: num(C.capImg, CAP.image), edit: num(C.capEdit, CAP.edit) };
-  const COSTr = { text: num(C.textTok, COST.text), image: num(C.imgTok, COST.image), edit: num(C.editTok, COST.edit) };
+  const LIMr = { text: num(C.textDaily, LIM.text), image: num(C.imgDaily, LIM.image), edit: num(C.editDaily, LIM.edit), video: num(C.vidDaily, LIM.video) };
+  const CAPr = { text: num(C.capText, CAP.text), image: num(C.capImg, CAP.image), edit: num(C.capEdit, CAP.edit), video: num(C.capVid, CAP.video) };
+  const COSTr = { text: num(C.textTok, COST.text), image: num(C.imgTok, COST.image), edit: num(C.editTok, COST.edit), video: num(C.vidTok, COST.video) };
   const TF = num(C.tokFree, TOK_FREE), TP = num(C.tokPro, TOK_PRO), TW = num(C.winH, 6) * 3600;
 
   const L = await lic(req);
 
   if (['text', 'chat'].includes(d.kind)) return E('Fitur teks tidak tersedia di endpoint ini. Gunakan /api/chat.', 400);
-  const kind = d.kind === 'edit' ? 'edit' : 'image';
+  const kind = d.kind === 'edit' ? 'edit' : d.kind === 'video' ? 'video' : 'image';
   const prompt = String(d.prompt || '').trim().slice(0, 4000);
-  if (prompt.length < 3) return E('Tulis deskripsi gambar dulu', 400);
+  if (prompt.length < 3) return E('Tulis deskripsinya dulu', 400);
 
   if (await RLD('c', ip, 60)) return E('Terlalu banyak permintaan. Coba lagi sebentar.', 429);
 
@@ -171,7 +193,7 @@ export default async function handler(req) {
   let tk = null;
   if (PRO_SECRET && KV_URL && KV_TOKEN) {
     try {
-      const key = await tokKey(L.who || 'I' + ip), limit = L.pro ? TP : TF, used = +(await kv(['GET', key])) || 0;
+      const key = await tokKey(L.who || 'I' + who), limit = L.pro ? TP : TF, used = +(await kv(['GET', key])) || 0;
       if (used + COSTr[kind] > limit) {
         const ttl = used ? await kv(['PTTL', key]) : -2, mnt = Math.ceil((ttl > 0 ? ttl : TW * 1000) / 60000);
         return E(`Kuota token tidak cukup (butuh ${COSTr[kind]}). Reset dalam ${Math.floor(mnt / 60)} jam ${mnt % 60} menit.`, 429, 'quota');
@@ -185,7 +207,7 @@ export default async function handler(req) {
   if (KV_URL && KV_TOKEN) {
     try {
       const day = dayKey();
-      const uk = `auralis:gen:${kind}:${L.id || 'ip-' + ip}:${day}`, gk = `auralis:gen:cap:${kind}:${day}`;
+      const uk = `auralis:gen:${kind}:${L.id || 'ip-' + who}:${day}`, gk = `auralis:gen:cap:${kind}:${day}`;
       for (const [k, lim, msg, code] of [
         [uk, LIMr[kind], `Batas harian ${kind} tercapai (${LIMr[kind]}/hari).`, 'quota'],
         [gk, CAPr[kind], `Kapasitas ${kind} hari ini penuh untuk semua pengguna.`, 'capacity'],
@@ -195,16 +217,18 @@ export default async function handler(req) {
         if (n > lim) { await undo(); return E(msg, 429, code); }
       }
     } catch { await undo(); return E('Penyimpanan sementara bermasalah.', 503); }
-  } else if (limited('q:' + (L.id || ip) + kind, LIMr[kind], 864e5)) return E('Batas harian tercapai', 429, 'quota');
+  } else if (limited('q:' + (L.id || who) + kind, LIMr[kind], 864e5)) return E('Batas harian tercapai', 429, 'quota');
 
   // Buat prediksi di Replicate
   const ratio = ['1:1', '16:9', '9:16'].includes(d.ratio) ? d.ratio : '1:1';
   const input = kind === 'edit'
     ? { prompt: editPrompt(prompt), input_image: imgUri, aspect_ratio: 'match_input_image', output_format: 'jpg' }
-    : { prompt, aspect_ratio: ratio, num_outputs: 1, output_format: 'jpg' };
+    : kind === 'video'
+      ? { prompt, aspect_ratio: ratio, duration: VIDEO_DUR, resolution: VIDEO_RES, fps: 24 }
+      : { prompt, aspect_ratio: ratio, num_outputs: 1, output_format: 'jpg' };
   let id = '', st = 0, em = '';
   try {
-    const r = await fetch(RAPI + '/models/' + (kind === 'edit' ? MODEL_EDIT : MODEL_IMG) + '/predictions', { method: 'POST', headers: rh, body: JSON.stringify({ input }) });
+    const r = await createPred(kind === 'edit' ? MODEL_EDIT : kind === 'video' ? MODEL_VIDEO : MODEL_IMG, input);
     st = r.status;
     const p = await r.json().catch(() => ({}));
     if (r.ok && p.id) id = p.id;
