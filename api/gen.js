@@ -1,35 +1,34 @@
-// Vercel Edge Function: generator gambar & edit foto lewat Cloudflare Worker "auralis-img".
-// Simpan sebagai api/gen.js. Tidak butuh CF_ACCOUNT_ID / CF_API_TOKEN lagi.
+// Vercel Edge Function: generator gambar & edit foto lewat Replicate.
+// Simpan sebagai api/gen.js. Env wajib: REPLICATE_API_TOKEN.
+// Env opsional: REPLICATE_IMAGE_MODEL (default flux-schnell), REPLICATE_EDIT_MODEL (default flux-kontext-pro).
 export const config = { runtime: 'edge' };
 
-const WORKER_URL = 'https://auralis-img.akbarzenito.workers.dev/';
-const WORKER_KEY = 'k9Xv2QpL7mR4tYw8Zc1NhB6sDf3JaU5e'; // harus sama dengan SECRET di worker.js
-const STEPS = Math.min(8, Math.max(1, +process.env.CF_IMAGE_STEPS || 4));
+const RTOKEN = (process.env.REPLICATE_API_TOKEN || process.env.REPLICATE_API_KEY || process.env.REPLICATE_TOKEN || '').trim();
+const MODEL_IMG = (process.env.REPLICATE_IMAGE_MODEL || 'black-forest-labs/flux-schnell').trim();
+const MODEL_EDIT = (process.env.REPLICATE_EDIT_MODEL || 'black-forest-labs/flux-kontext-pro').trim();
+const RAPI = 'https://api.replicate.com/v1';
+const rh = { authorization: 'Bearer ' + RTOKEN, 'content-type': 'application/json' };
 
 const STY = [
-  [/chibi/i, 'chibi style, cute, big head, small body, anime, 2d illustration, vibrant colors, clean line art', 0.78],
-  [/anime|manga|ghibli/i, 'anime style, cel shading, vibrant colors, clean line art, detailed eyes', 0.68],
-  [/kartun|cartoon/i, 'cartoon style, bold outlines, flat colors', 0.68],
-  [/pixar|3d/i, '3D render, pixar style, soft lighting, smooth skin', 0.65],
-  [/pixel/i, 'pixel art, 16-bit, retro game sprite', 0.8],
-  [/cat air|watercolou?r/i, 'watercolor painting, soft washes, paper texture', 0.65],
-  [/sketsa|pensil|sketch|pencil/i, 'pencil sketch, detailed shading, monochrome', 0.7],
-  [/lukisan|minyak|painting/i, 'oil painting, brush strokes, rich colors', 0.65],
+  [/chibi/i, 'chibi anime style with a big head and small body, clean line art, vibrant colors'],
+  [/anime|manga|ghibli/i, 'anime style illustration with cel shading, clean line art and vibrant colors'],
+  [/kartun|cartoon/i, 'cartoon style with bold outlines and flat colors'],
+  [/pixar|3d/i, 'a 3D animated movie style render with soft lighting'],
+  [/pixel/i, '16-bit pixel art'],
+  [/cat air|watercolou?r/i, 'a watercolor painting with soft washes'],
+  [/sketsa|pensil|sketch|pencil/i, 'a detailed pencil sketch'],
+  [/lukisan|minyak|painting/i, 'an oil painting with visible brush strokes'],
 ];
 
-function editReq(prompt, b64, str) {
+// Kontext memakai instruksi ("ubah jadi ..."), bukan kata kunci kualitas
+function editPrompt(prompt) {
   const st = STY.find(x => x[0].test(prompt));
-  return {
-    prompt: prompt + (st ? ', ' + st[1] : '') + ', masterpiece, best quality, highly detailed',
-    negative_prompt: 'lowres, bad anatomy, deformed face, extra fingers, blurry, text, watermark, nsfw',
-    strength: str || (st ? st[2] : 0.6),
-    num_steps: 20,
-    guidance: 7.5,
-    image: b64,
-  };
+  return st
+    ? 'Transform this image into ' + st[1] + '. Keep the same subject, composition and pose. ' + prompt
+    : prompt + '. Keep the same subject and composition.';
 }
 
-const READY = true;
+const READY = !!RTOKEN;
 const LIM = { text: +process.env.GEN_TEXT_DAILY || 100, image: +process.env.GEN_IMG_DAILY || 30, edit: +process.env.GEN_EDIT_DAILY || 20 };
 const CAP = { text: +process.env.GEN_TEXT_GLOBAL_DAILY || 1000, image: +process.env.GEN_IMG_GLOBAL_DAILY || 200, edit: +process.env.GEN_EDIT_GLOBAL_DAILY || 100 };
 const PRO_SECRET = (process.env.PRO_SECRET || '').trim();
@@ -89,7 +88,6 @@ function limited(key, n, win) {
   if (a.length >= n) return true;
   a.push(now); hits.set(key, a); return false;
 }
-const toB64 = buf => { const u = new Uint8Array(buf); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
 
 export default async function handler(req) {
   const origin = req.headers.get('origin') || '', own = new URL(req.url).origin;
@@ -103,19 +101,57 @@ export default async function handler(req) {
   if (!ok) return E('Origin tidak diizinkan', 403);
 
   const ip = (req.headers.get('x-forwarded-for') || 'x').split(',')[0].trim();
+
+  // Ambil hasil gambar dari Replicate (hanya host Replicate yang diizinkan)
+  if (req.method === 'GET') {
+    const u = new URL(req.url), f = u.searchParams.get('f');
+    if (f) {
+      let fu; try { fu = new URL(f); } catch { return E('Berkas tidak valid', 400); }
+      if (fu.protocol !== 'https:' || !(fu.hostname === 'replicate.delivery' || fu.hostname.endsWith('.replicate.delivery'))) return E('Berkas tidak diizinkan', 400);
+      const r = await fetch(fu.href);
+      if (!r.ok) return E('Hasil tidak bisa diambil (mungkin sudah kedaluwarsa)', 404);
+      return new Response(r.body, { status: 200, headers: { ...cors, 'content-type': r.headers.get('content-type') || 'image/jpeg', 'cache-control': 'no-store' } });
+    }
+    const C0 = await cfg();
+    return J({
+      enabled: READY, text: false, image: READY, edit: READY,
+      limits: { text: num(C0.textDaily, LIM.text), image: num(C0.imgDaily, LIM.image), edit: num(C0.editDaily, LIM.edit) },
+      costs: { text: num(C0.textTok, COST.text), image: num(C0.imgTok, COST.image), edit: num(C0.editTok, COST.edit) },
+    });
+  }
+  if (req.method !== 'POST') return E('Metode tidak didukung', 405);
+  if (!READY) return E('REPLICATE_API_TOKEN belum diatur di Vercel', 503);
+  if (+req.headers.get('content-length') > 1.6e6) return E('Permintaan terlalu besar', 413);
+
+  const d = await req.json().catch(() => null);
+  if (!d) return E('Body tidak valid', 400);
+
+  // Cek status prediksi (dipanggil berulang oleh index.html)
+  if (d.action === 'status') {
+    if (await RLD('s', ip, 900)) return E('Terlalu banyak permintaan. Coba lagi sebentar.', 429);
+    const id = String(d.id || '');
+    if (!/^[a-z0-9]{8,40}$/i.test(id)) return E('ID tidak valid', 400);
+    try {
+      const r = await fetch(RAPI + '/predictions/' + id, { headers: rh });
+      const p = await r.json().catch(() => ({}));
+      if (!r.ok) return E('Gagal memeriksa status', 502);
+      if (p.status === 'succeeded') {
+        const out = Array.isArray(p.output) ? p.output[0] : p.output;
+        if (!out || typeof out !== 'string') return J({ status: 'failed', error: 'Hasil kosong' });
+        return J({ status: 'succeeded', file: out });
+      }
+      if (p.status === 'failed' || p.status === 'canceled') return J({ status: p.status, error: String(p.error || 'Gagal membuat gambar').slice(0, 240) });
+      return J({ status: p.status || 'processing' });
+    } catch { return E('Replicate tidak bisa dihubungi', 502); }
+  }
+
   const C = await cfg();
   const LIMr = { text: num(C.textDaily, LIM.text), image: num(C.imgDaily, LIM.image), edit: num(C.editDaily, LIM.edit) };
   const CAPr = { text: num(C.capText, CAP.text), image: num(C.capImg, CAP.image), edit: num(C.capEdit, CAP.edit) };
   const COSTr = { text: num(C.textTok, COST.text), image: num(C.imgTok, COST.image), edit: num(C.editTok, COST.edit) };
   const TF = num(C.tokFree, TOK_FREE), TP = num(C.tokPro, TOK_PRO), TW = num(C.winH, 6) * 3600;
 
-  if (req.method === 'GET') return J({ enabled: READY, text: false, image: READY, edit: READY, limits: LIMr, costs: COSTr });
-  if (req.method !== 'POST') return E('Metode tidak didukung', 405);
-  if (+req.headers.get('content-length') > 1.6e6) return E('Permintaan terlalu besar', 413);
-
   const L = await lic(req);
-  const d = await req.json().catch(() => null);
-  if (!d) return E('Body tidak valid', 400);
 
   if (['text', 'chat'].includes(d.kind)) return E('Fitur teks tidak tersedia di endpoint ini. Gunakan /api/chat.', 400);
   const kind = d.kind === 'edit' ? 'edit' : 'image';
@@ -124,11 +160,11 @@ export default async function handler(req) {
 
   if (await RLD('c', ip, 60)) return E('Terlalu banyak permintaan. Coba lagi sebentar.', 429);
 
-  let imgB64 = '';
+  let imgUri = '';
   if (kind === 'edit') {
-    const im = String(d.image || ''), mm = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+\/=]+)$/.exec(im);
-    if (!mm || im.length > 1.4e6) return E('Gambar yang diedit tidak valid atau terlalu besar', 400);
-    imgB64 = mm[2];
+    const im = String(d.image || '');
+    if (!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(im) || im.length > 1.4e6) return E('Gambar yang diedit tidak valid atau terlalu besar', 400);
+    imgUri = im;
   }
 
   // Cek kuota token
@@ -161,38 +197,34 @@ export default async function handler(req) {
     } catch { await undo(); return E('Penyimpanan sementara bermasalah.', 503); }
   } else if (limited('q:' + (L.id || ip) + kind, LIMr[kind], 864e5)) return E('Batas harian tercapai', 429, 'quota');
 
-  // Panggil Cloudflare Worker
-  let img = '', mime = 'image/jpeg', st = 0, em = '';
+  // Buat prediksi di Replicate
+  const ratio = ['1:1', '16:9', '9:16'].includes(d.ratio) ? d.ratio : '1:1';
+  const input = kind === 'edit'
+    ? { prompt: editPrompt(prompt), input_image: imgUri, aspect_ratio: 'match_input_image', output_format: 'jpg' }
+    : { prompt, aspect_ratio: ratio, num_outputs: 1, output_format: 'jpg' };
+  let id = '', st = 0, em = '';
   try {
-    const strength = +d.strength > 0 ? Math.min(0.95, Math.max(0.2, +d.strength)) : 0;
-    const payload = kind === 'edit' ? editReq(prompt, imgB64, strength) : { prompt, steps: STEPS };
-    const r = await fetch(WORKER_URL, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-key': WORKER_KEY },
-      body: JSON.stringify(payload),
-    });
+    const r = await fetch(RAPI + '/models/' + (kind === 'edit' ? MODEL_EDIT : MODEL_IMG) + '/predictions', { method: 'POST', headers: rh, body: JSON.stringify({ input }) });
     st = r.status;
-    const ct = r.headers.get('content-type') || '';
-    if (r.ok && ct.startsWith('image/')) { mime = ct.split(';')[0]; img = toB64(await r.arrayBuffer()); }
-    else {
-      const p = await r.json().catch(() => ({}));
-      em = String((p && p.error && (p.error.message || p.error)) || '');
-    }
+    const p = await r.json().catch(() => ({}));
+    if (r.ok && p.id) id = p.id;
+    else em = String(p.detail || p.title || p.error || '');
   } catch {
     await undo();
-    return E('Server gambar tidak bisa dihubungi', 502);
+    return E('Replicate tidak bisa dihubungi', 502);
   }
 
-  if (!img) {
+  if (!id) {
     await undo();
-    if (st === 429 || /allocation|neurons|rate|limit|quota/i.test(em)) return E('Kuota gratis AI hari ini habis.', 429, 'capacity');
-    if (st === 401) return E('Kunci Worker tidak cocok. Samakan WORKER_KEY di api/gen.js dengan SECRET di worker.js.', 502);
-    return E((em || 'Server gambar menolak permintaan').slice(0, 240), st >= 500 ? 502 : 400);
+    if (st === 402 || /credit|billing|insufficient/i.test(em)) return E('Saldo Replicate habis. Isi saldo di replicate.com/account/billing.', 502, 'capacity');
+    if (st === 401) return E('Token Replicate ditolak. Periksa REPLICATE_API_TOKEN di Vercel.', 502);
+    if (st === 429) return E('Replicate sedang sibuk. Coba lagi sebentar.', 429, 'capacity');
+    return E((em || 'Replicate menolak permintaan').slice(0, 240), st >= 500 ? 502 : 400);
   }
 
-  // Catat token & statistik sukses
+  // Catat token & statistik
   if (tk) { try { const r2 = await kv(['INCRBY', tk.key, COSTr[kind]]); if (r2 === COSTr[kind]) await kv(['EXPIRE', tk.key, TW]); } catch {} }
   if (KV_URL && KV_TOKEN) await Promise.all([stat('tok', COSTr[kind]), stat('tm:ai-' + kind, COSTr[kind]), stat('tf:ai', COSTr[kind]), stat('ai_' + kind)]);
 
-  return J({ ok: true, kind, img: `data:${mime};base64,${img}` });
+  return J({ ok: true, kind, id });
 }
